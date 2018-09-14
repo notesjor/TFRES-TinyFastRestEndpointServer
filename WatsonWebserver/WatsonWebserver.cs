@@ -36,13 +36,11 @@ namespace WatsonWebserver
         private HttpListener Http;
         private string ListenerIp;
         private int ListenerPort;
-        private bool ListenerSsl;
         private string ListenerPrefix;
         private LoggingManager Logging;
         private bool DebugRestRequests;
         private bool DebugRestResponses;
 
-        private DynamicRouteManager DynamicRoutes;
         private StaticRouteManager StaticRoutes;
         private ContentRouteManager ContentRoutes;
         private ContentRouteProcessor ContentProcessor;
@@ -60,18 +58,16 @@ namespace WatsonWebserver
         /// </summary>
         /// <param name="ip">IP address on which to listen.</param>
         /// <param name="port">TCP port on which to listen.</param>
-        /// <param name="ssl">Specify whether or not SSL should be used (HTTPS).</param>
         /// <param name="defaultRequestHandler">Method used when a request is received and no routes are defined.  Commonly used as the 404 handler when routes are used.</param>
-        public Server(string ip, int port, bool ssl, Func<HttpRequest, HttpResponse> defaultRequestHandler, bool debug)
+        public Server(string ip, int port, Func<HttpRequest, HttpResponse> defaultRequestHandler, bool debug)
         {
-            if (String.IsNullOrEmpty(ip)) ip = "*";
+            if (string.IsNullOrEmpty(ip)) ip = "*";
             if (port < 1) throw new ArgumentOutOfRangeException(nameof(port));
-            if (defaultRequestHandler == null) throw new ArgumentNullException(nameof(defaultRequestHandler));
 
             Http = new HttpListener();
             ListenerIp = ip;
             ListenerPort = port;
-            ListenerSsl = ssl;
+            ListenerPrefix = $"http://{ListenerIp}:{ListenerPort}/";
             Logging = new LoggingManager(debug);
             if (debug)
             {
@@ -79,16 +75,11 @@ namespace WatsonWebserver
                 DebugRestResponses = true;
             }
 
-            DynamicRoutes = new DynamicRouteManager(Logging, debug);
             StaticRoutes = new StaticRouteManager(Logging, debug);
             ContentRoutes = new ContentRouteManager(Logging, debug);
             ContentProcessor = new ContentRouteProcessor(Logging, debug, ContentRoutes);
             DefaultRoute = defaultRequestHandler;
             OptionsRoute = null;
-             
-            Console.Write("Starting Watson Webserver at ");
-            if (ListenerSsl) Console.WriteLine("https://" + ListenerIp + ":" + ListenerPort);
-            else Console.WriteLine("http://" + ListenerIp + ":" + ListenerPort);
 
             TokenSource = new CancellationTokenSource();
             Token = TokenSource.Token;
@@ -114,7 +105,7 @@ namespace WatsonWebserver
         /// <param name="isDirectory">Indicates if the path represents a directory.</param>
         public void AddContentRoute(string path, bool isDirectory)
         { 
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
             ContentRoutes.Add(path, isDirectory);
         }
@@ -127,93 +118,13 @@ namespace WatsonWebserver
         /// <param name="handler">The method to which control should be passed.</param>
         public void AddStaticRoute(string verb, string path, Func<HttpRequest, HttpResponse> handler)
         {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+            if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
+            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
             if (handler == null) throw new ArgumentNullException(nameof(handler));
 
             StaticRoutes.Add(verb, path, handler);
         }
-
-        /// <summary>
-        /// Add a dynamic route to the server.
-        /// </summary>
-        /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
-        /// <param name="path">The regular expression upon which the raw URL should match.</param>
-        /// <param name="handler">The method to which control should be passed.</param>
-        public void AddDynamicRoute(string verb, Regex path, Func<HttpRequest, HttpResponse> handler)
-        {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (path == null) throw new ArgumentNullException(nameof(path));
-            if (handler == null) throw new ArgumentNullException(nameof(handler));
-
-            DynamicRoutes.Add(verb, path, handler); 
-        }
-
-        /// <summary>
-        /// Remove a static route from the server.
-        /// </summary>
-        /// <param name="path">The raw URL to match, i.e. /foo/bar.</param>
-        public void RemoveContentRoute(string path)
-        { 
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
-            ContentRoutes.Remove(path);
-        }
-
-        /// <summary>
-        /// Remove a static route from the server.
-        /// </summary>
-        /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
-        /// <param name="path">The raw URL to match, i.e. /foo/bar.</param>
-        public void RemoveStaticRoute(string verb, string path)
-        {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
-            StaticRoutes.Remove(verb, path);
-        }
-
-        /// <summary>
-        /// Remove a dynamic route from the server.
-        /// </summary>
-        /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
-        /// <param name="path">The regular expression upon which the raw URL should match.</param>
-        public void RemoveDynamicRoute(string verb, Regex path)
-        {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (path == null) throw new ArgumentNullException(nameof(path));
-
-            DynamicRoutes.Remove(verb, path);
-        }
-
-        /// <summary>
-        /// Check if a static route exists.
-        /// </summary>
-        /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
-        /// <param name="path">The raw URL to match, i.e. /foo/bar.</param>
-        /// <returns>True if a route exists.</returns>
-        public bool StaticRouteExists(string verb, string path)
-        {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
-            return StaticRoutes.Exists(verb, path);
-        }
-
-        /// <summary>
-        /// Check if a dynamic route exists.
-        /// </summary>
-        /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
-        /// <param name="path">The raw URL to match, i.e. /foo/bar.</param>
-        /// <returns>True if a route exists.</returns>
-        public bool DynamicRouteExists(string verb, Regex path)
-        {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (path == null) throw new ArgumentNullException(nameof(path));
-
-            return DynamicRoutes.Exists(verb, path);
-        }
-
+    
         #endregion
 
         #region Private-Methods
@@ -242,8 +153,6 @@ namespace WatsonWebserver
         {
             try
             {
-                if (ListenerSsl) ListenerPrefix = "https://" + ListenerIp + ":" + ListenerPort + "/";
-                else ListenerPrefix = "http://" + ListenerIp + ":" + ListenerPort + "/";
                 Http.Prefixes.Add(ListenerPrefix);
                 Http.Start();
                 
@@ -259,18 +168,7 @@ namespace WatsonWebserver
                         {
                             #region Populate-Http-Request-Object
 
-                            HttpRequest currRequest = new HttpRequest(context);
-                            if (currRequest == null)
-                            {
-                                Logging.Log("Unable to populate HTTP request object on thread ID " + Thread.CurrentThread.ManagedThreadId + ", returning 400");
-                                SendResponse(
-                                    context,
-                                    currRequest,
-                                    BuildErrorResponse(500, "Unable to parse your request.", null),
-                                    WatsonCommon.AddToDict("content-type", "application/json", null),
-                                    400);
-                                return;
-                            }
+                            var currRequest = new HttpRequest(context);
 
                             Logging.Log("Thread " + currRequest.ThreadId + " " + currRequest.SourceIp + ":" + currRequest.SourcePort + " " + currRequest.Method + " " + currRequest.RawUrlWithoutQuery);
 
@@ -318,18 +216,7 @@ namespace WatsonWebserver
                                     }
                                     else
                                     {
-                                        // no static route, check for dynamic route
-                                        handler = DynamicRoutes.Match(currRequest.Method, currRequest.RawUrlWithoutQuery);
-                                        if (handler != null)
-                                        {
-                                            // dynamic route found
-                                            currResponse = handler(currRequest);
-                                        }
-                                        else
-                                        {
-                                            // process using default route
-                                            currResponse = DefaultRouteProcessor(context, currRequest);
-                                        }
+                                        currResponse = DefaultRouteProcessor(context, currRequest);
                                     }
                                 }
 
@@ -397,10 +284,6 @@ namespace WatsonWebserver
                         { 
                             
                         }
-                        finally
-                        {
-
-                        }
                     }, Http.GetContext());
                 }
             } 
@@ -419,14 +302,10 @@ namespace WatsonWebserver
         {
             if (context == null) throw new ArgumentNullException(nameof(context));
             if (request == null) throw new ArgumentNullException(nameof(request));
-            HttpResponse ret = DefaultRoute(request);
-            if (ret == null)
-            {
-                Logging.Log("Null HttpResponse received from call to RequestReceived, sending 500");
-                ret = new HttpResponse(request, false, 500, null, "application/json", "Unable to generate response", false);
-                return ret;
-            }
-
+            var ret = DefaultRoute(request);
+            if (ret != null) return ret;
+            Logging.Log("Null HttpResponse received from call to RequestReceived, sending 500");
+            ret = new HttpResponse(request, false, 500, null, "application/json", "Unable to generate response", false);
             return ret;
         }
 
@@ -435,12 +314,9 @@ namespace WatsonWebserver
             string text,
             byte[] data)
         {
-            Dictionary<string, object> ret = new Dictionary<string, object>();
-            ret.Add("data", data);
-            ret.Add("success", false);
-            ret.Add("http_status", status);
+          var ret = new Dictionary<string, object> {{"data", data}, {"success", false}, {"http_status", status}};
 
-            switch (status)
+          switch (status)
             {
                 case 200:
                     ret.Add("http_text", "OK");
@@ -504,20 +380,16 @@ namespace WatsonWebserver
             }
 
             ret.Add("text", text);
-            string json = WatsonCommon.SerializeJson(ret);
-            return Encoding.UTF8.GetBytes(json);
+            return Encoding.UTF8.GetBytes(WatsonCommon.SerializeJson(ret));
         }
 
         private byte[] BuildSuccessResponse(
             int status,
             object data)
         {
-            Dictionary<string, object> ret = new Dictionary<string, object>();
-            ret.Add("data", data);
-            ret.Add("success", true);
-            ret.Add("http_status", status);
+          var ret = new Dictionary<string, object> {{"data", data}, {"success", true}, {"http_status", status}};
 
-            switch (status)
+          switch (status)
             {
                 // see https://en.wikipedia.org/wiki/List_of_HTTP_status_codes
 
@@ -882,8 +754,7 @@ namespace WatsonWebserver
                     break;
             }
             
-            string json = WatsonCommon.SerializeJson(ret);
-            return Encoding.UTF8.GetBytes(json);
+            return Encoding.UTF8.GetBytes(WatsonCommon.SerializeJson(ret));
         }
 
         private void SendResponse(
@@ -1122,18 +993,12 @@ namespace WatsonWebserver
             }
             finally
             {
-                if (req != null)
-                {
-                    if (req.TimestampUtc != null)
-                    {
-                        Logging.Log("Thread " + req.ThreadId + " sending " + responseLen + "B status " + status + " " + req.SourceIp + ":" + req.SourcePort + " for " + req.Method + " " + req.RawUrlWithoutQuery + " (" + WatsonCommon.TotalMsFrom(req.TimestampUtc) + "ms)");
-                    }
-                }
+              if (req?.TimestampUtc != null)
+              {
+                Logging.Log("Thread " + req.ThreadId + " sending " + responseLen + "B status " + status + " " + req.SourceIp + ":" + req.SourcePort + " for " + req.Method + " " + req.RawUrlWithoutQuery + " (" + WatsonCommon.TotalMsFrom(req.TimestampUtc) + "ms)");
+              }
 
-                if (response != null)
-                {
-                    response.Close();
-                }
+              response?.Close();
             }
         }
         
@@ -1141,7 +1006,7 @@ namespace WatsonWebserver
         {
             Logging.Log("Thread " + Thread.CurrentThread.ManagedThreadId + " processing OPTIONS request");
 
-            HttpListenerResponse response = context.Response;
+            var response = context.Response;
             response.StatusCode = 200;
 
             string[] requestedHeaders = null;
@@ -1149,8 +1014,8 @@ namespace WatsonWebserver
             {
                 foreach (KeyValuePair<string, string> curr in req.Headers)
                 {
-                    if (String.IsNullOrEmpty(curr.Key)) continue;
-                    if (String.IsNullOrEmpty(curr.Value)) continue;
+                    if (string.IsNullOrEmpty(curr.Key)) continue;
+                    if (string.IsNullOrEmpty(curr.Value)) continue;
                     if (String.Compare(curr.Key.ToLower(), "access-control-request-headers") == 0)
                     {
                         requestedHeaders = curr.Value.Split(',');
@@ -1166,7 +1031,7 @@ namespace WatsonWebserver
                 int addedCount = 0;
                 foreach (string curr in requestedHeaders)
                 {
-                    if (String.IsNullOrEmpty(curr)) continue;
+                    if (string.IsNullOrEmpty(curr)) continue;
                     if (addedCount > 0) headers += ", ";
                     headers += ", " + curr;
                     addedCount++;
@@ -1186,7 +1051,6 @@ namespace WatsonWebserver
             response.Close();
 
             Logging.Log("Thread " + Thread.CurrentThread.ManagedThreadId + " sent OPTIONS response");
-            return;
         }
 
         #endregion
