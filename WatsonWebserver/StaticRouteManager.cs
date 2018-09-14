@@ -14,8 +14,6 @@ namespace WatsonWebserver
 
         #region Private-Members
 
-        private LoggingManager Logging;
-        private bool Debug;
         private List<StaticRoute> Routes;
         private readonly object RouteLock;
 
@@ -23,12 +21,8 @@ namespace WatsonWebserver
 
         #region Constructors-and-Factories
 
-        public StaticRouteManager(LoggingManager logging, bool debug)
+        public StaticRouteManager()
         {
-            if (logging == null) throw new ArgumentNullException(nameof(logging));
-
-            Logging = logging;
-            Debug = debug;
             Routes = new List<StaticRoute>();
             RouteLock = new object();
         }
@@ -39,39 +33,18 @@ namespace WatsonWebserver
 
         public void Add(string verb, string path, Func<HttpRequest, HttpResponse> handler)
         {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+            if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
+            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
             if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-            StaticRoute r = new StaticRoute(verb, path, handler);
+            var r = new StaticRoute(verb, path, handler);
             Add(r);
-        }
-
-        public void Remove(string verb, string path)
-        { 
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
-            StaticRoute r = Get(verb, path);
-            if (r == null || r == default(StaticRoute))
-            { 
-                return;
-            }
-            else
-            {
-                lock (RouteLock)
-                {
-                    Routes.Remove(r);
-                }
-                 
-                return;
-            }
         }
 
         public StaticRoute Get(string verb, string path)
         {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+            if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
+            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
             verb = verb.ToLower();
             path = path.ToLower();
@@ -94,8 +67,8 @@ namespace WatsonWebserver
 
         public bool Exists(string verb, string path)
         {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+            if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
+            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
              
             verb = verb.ToLower();
             path = path.ToLower();
@@ -116,8 +89,8 @@ namespace WatsonWebserver
 
         public Func<HttpRequest, HttpResponse> Match(string verb, string path)
         {
-            if (String.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
-            if (String.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+            if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
+            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
             verb = verb.ToLower();
             path = path.ToLower();
@@ -126,15 +99,7 @@ namespace WatsonWebserver
 
             lock (RouteLock)
             {
-                StaticRoute curr = Routes.FirstOrDefault(i => i.Verb == verb && i.Path == path);
-                if (curr == null || curr == default(StaticRoute))
-                {
-                    return null;
-                }
-                else
-                {
-                    return curr.Handler;
-                }
+              return Routes.FirstOrDefault(i => i.Verb == verb && i.Path == path)?.Handler;
             }
         }
 
@@ -160,18 +125,6 @@ namespace WatsonWebserver
             {
                 Routes.Add(route); 
             }
-        }
-
-        private void Remove(StaticRoute route)
-        {
-            if (route == null) throw new ArgumentNullException(nameof(route));
-
-            lock (RouteLock)
-            {
-                Routes.Remove(route);
-            }
-             
-            return;
         }
 
         #endregion

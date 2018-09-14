@@ -37,13 +37,8 @@ namespace WatsonWebserver
         private string ListenerIp;
         private int ListenerPort;
         private string ListenerPrefix;
-        private LoggingManager Logging;
-        private bool DebugRestRequests;
-        private bool DebugRestResponses;
 
         private StaticRouteManager StaticRoutes;
-        private ContentRouteManager ContentRoutes;
-        private ContentRouteProcessor ContentProcessor;
         private Func<HttpRequest, HttpResponse> DefaultRoute;
         
         private CancellationTokenSource TokenSource;
@@ -59,7 +54,7 @@ namespace WatsonWebserver
         /// <param name="ip">IP address on which to listen.</param>
         /// <param name="port">TCP port on which to listen.</param>
         /// <param name="defaultRequestHandler">Method used when a request is received and no routes are defined.  Commonly used as the 404 handler when routes are used.</param>
-        public Server(string ip, int port, Func<HttpRequest, HttpResponse> defaultRequestHandler, bool debug)
+        public Server(string ip, int port, Func<HttpRequest, HttpResponse> defaultRequestHandler)
         {
             if (string.IsNullOrEmpty(ip)) ip = "*";
             if (port < 1) throw new ArgumentOutOfRangeException(nameof(port));
@@ -68,16 +63,8 @@ namespace WatsonWebserver
             ListenerIp = ip;
             ListenerPort = port;
             ListenerPrefix = $"http://{ListenerIp}:{ListenerPort}/";
-            Logging = new LoggingManager(debug);
-            if (debug)
-            {
-                DebugRestRequests = true;
-                DebugRestResponses = true;
-            }
 
-            StaticRoutes = new StaticRouteManager(Logging, debug);
-            ContentRoutes = new ContentRouteManager(Logging, debug);
-            ContentProcessor = new ContentRouteProcessor(Logging, debug, ContentRoutes);
+            StaticRoutes = new StaticRouteManager();
             DefaultRoute = defaultRequestHandler;
             OptionsRoute = null;
 
@@ -96,18 +83,6 @@ namespace WatsonWebserver
         public void Dispose()
         {
             Dispose(true);
-        }
-        
-        /// <summary>
-        /// Add a content route to the server.
-        /// </summary>
-        /// <param name="path">The raw URL to match, i.e. /foo/bar.</param>
-        /// <param name="isDirectory">Indicates if the path represents a directory.</param>
-        public void AddContentRoute(string path, bool isDirectory)
-        { 
-            if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
-            ContentRoutes.Add(path, isDirectory);
         }
 
         /// <summary>
@@ -169,9 +144,7 @@ namespace WatsonWebserver
                             #region Populate-Http-Request-Object
 
                             var currRequest = new HttpRequest(context);
-
-                            Logging.Log("Thread " + currRequest.ThreadId + " " + currRequest.SourceIp + ":" + currRequest.SourcePort + " " + currRequest.Method + " " + currRequest.RawUrlWithoutQuery);
-
+                        
                             #endregion
 
                             #region Process-OPTIONS-Request
@@ -179,7 +152,6 @@ namespace WatsonWebserver
                             if (currRequest.Method.ToLower().Trim().Contains("option")
                                 && OptionsRoute != null)
                             {
-                                Logging.Log("Thread " + Thread.CurrentThread.ManagedThreadId + " OPTIONS request received");
                                 OptionsProcessor(context, currRequest);
                                 return;
                             }
@@ -188,8 +160,6 @@ namespace WatsonWebserver
 
                             #region Send-to-Handler
 
-                            if (DebugRestRequests) Logging.Log(currRequest.ToString());
-
                             Task.Run(() =>
                             {
                                 HttpResponse currResponse = null;
@@ -197,28 +167,8 @@ namespace WatsonWebserver
 
                                 #region Find-Route
                                 
-                                if (currRequest.Method.ToLower().Equals("get") || currRequest.Method.ToLower().Equals("head"))
-                                { 
-                                    if (ContentRoutes.Exists(currRequest.RawUrlWithoutQuery))
-                                    {
-                                        // content route found
-                                        currResponse = ContentProcessor.Process(currRequest);
-                                    }
-                                }
-
-                                if (currResponse == null)
-                                {
-                                    handler = StaticRoutes.Match(currRequest.Method, currRequest.RawUrlWithoutQuery);
-                                    if (handler != null)
-                                    {
-                                        // static route found
-                                        currResponse = handler(currRequest);
-                                    }
-                                    else
-                                    {
-                                        currResponse = DefaultRouteProcessor(context, currRequest);
-                                    }
-                                }
+                                handler = StaticRoutes.Match(currRequest.Method, currRequest.RawUrlWithoutQuery);
+                                currResponse = handler != null ? handler(currRequest) : DefaultRouteProcessor(context, currRequest);
 
                                 #endregion
 
@@ -226,7 +176,6 @@ namespace WatsonWebserver
 
                                 if (currResponse == null)
                                 {
-                                    Logging.Log("Null response from handler for " + currRequest.SourceIp + ":" + currRequest.SourcePort + " " + currRequest.Method + " " + currRequest.RawUrlWithoutQuery);
                                     SendResponse(
                                         context,
                                         currRequest,
@@ -235,66 +184,54 @@ namespace WatsonWebserver
                                         500);
                                     return;
                                 }
-                                else
+
+                              var headers = new Dictionary<string, string>();
+                              if (!string.IsNullOrEmpty(currResponse.ContentType))
+                              {
+                                headers.Add("content-type", currResponse.ContentType);
+                              }
+
+                              if (currResponse.Headers != null && currResponse.Headers.Count > 0)
+                              {
+                                foreach (KeyValuePair<string, string> curr in currResponse.Headers)
                                 {
-                                    if (DebugRestResponses) Logging.Log(currResponse.ToString());
-
-                                    Dictionary<string, string> headers = new Dictionary<string, string>();
-                                    if (!String.IsNullOrEmpty(currResponse.ContentType))
-                                    {
-                                        headers.Add("content-type", currResponse.ContentType);
-                                    }
-
-                                    if (currResponse.Headers != null && currResponse.Headers.Count > 0)
-                                    {
-                                        foreach (KeyValuePair<string, string> curr in currResponse.Headers)
-                                        {
-                                            headers = WatsonCommon.AddToDict(curr.Key, curr.Value, headers);
-                                        }
-                                    }
-
-                                    if (currResponse.RawResponse)
-                                    {
-                                        SendResponse(
-                                            context,
-                                            currRequest,
-                                            currResponse.Data,
-                                            headers,
-                                            currResponse.StatusCode);
-                                        return;
-                                    }
-                                    else
-                                    {
-                                        SendResponse(
-                                            context,
-                                            currRequest,
-                                            currResponse.ToJsonBytes(),
-                                            headers,
-                                            currResponse.StatusCode);
-                                        return;
-                                    }
+                                  headers = WatsonCommon.AddToDict(curr.Key, curr.Value, headers);
                                 }
+                              }
 
-                                #endregion
+                              if (currResponse.RawResponse)
+                              {
+                                SendResponse(
+                                             context,
+                                             currRequest,
+                                             currResponse.Data,
+                                             headers,
+                                             currResponse.StatusCode);
+                                return;
+                              }
+
+                              SendResponse(
+                                           context,
+                                           currRequest,
+                                           currResponse.ToJsonBytes(),
+                                           headers,
+                                           currResponse.StatusCode);
+
+                              #endregion
                             });
 
                             #endregion
                         }
                         catch (Exception)
                         { 
-                            
+                            // ignore
                         }
                     }, Http.GetContext());
                 }
             } 
             catch (Exception eOuter)
             {
-                Logging.LogException("AcceptConnections", eOuter);
-                throw;
-            }
-            finally
-            {
-                Logging.Log("Exiting");
+                // ignore
             }
         }
 
@@ -304,7 +241,6 @@ namespace WatsonWebserver
             if (request == null) throw new ArgumentNullException(nameof(request));
             var ret = DefaultRoute(request);
             if (ret != null) return ret;
-            Logging.Log("Null HttpResponse received from call to RequestReceived, sending 500");
             ret = new HttpResponse(request, false, 500, null, "application/json", "Unable to generate response", false);
             return ret;
         }
@@ -775,7 +711,7 @@ namespace WatsonWebserver
                 {
                     if (data is string)
                     {
-                        if (!String.IsNullOrEmpty(data.ToString()))
+                        if (!string.IsNullOrEmpty(data.ToString()))
                         {
                             responseLen = data.ToString().Length;
                         }
@@ -916,7 +852,7 @@ namespace WatsonWebserver
                         {
                             #region string
 
-                            if (!String.IsNullOrEmpty(data.ToString()))
+                            if (!string.IsNullOrEmpty(data.ToString()))
                             {
                                 if (data.ToString().Length > 0)
                                 {
@@ -965,7 +901,7 @@ namespace WatsonWebserver
                 }
                 catch (HttpListenerException)
                 {
-                    Logging.Log("Remote endpoint " + req.SourceIp + ":" + req.SourcePort + " appears to have disconnected");
+                  // ignore
                 }
                 finally
                 {
@@ -973,39 +909,27 @@ namespace WatsonWebserver
                 }
 
                 #endregion
-
-                return;
             }
             catch (IOException)
             {
-                Logging.Log("Remote endpoint " + req.SourceIp + ":" + req.SourcePort + " appears to have terminated connection prematurely (outer IOException)");
-                return;
+              // ignore
             }
             catch (HttpListenerException)
             {
-                Logging.Log("Remote endpoint " + req.SourceIp + ":" + req.SourcePort + " appears to have terminated connection prematurely (outer HttpListenerException)");
-                return;
+              // ignore
             }
             catch (Exception e)
-            {
-                Logging.LogException("SendResponse", e);
-                return;
+                  {
+              // ignore
             }
             finally
             {
-              if (req?.TimestampUtc != null)
-              {
-                Logging.Log("Thread " + req.ThreadId + " sending " + responseLen + "B status " + status + " " + req.SourceIp + ":" + req.SourcePort + " for " + req.Method + " " + req.RawUrlWithoutQuery + " (" + WatsonCommon.TotalMsFrom(req.TimestampUtc) + "ms)");
-              }
-
               response?.Close();
             }
         }
         
         private void OptionsProcessor(HttpListenerContext context, HttpRequest req)
         {
-            Logging.Log("Thread " + Thread.CurrentThread.ManagedThreadId + " processing OPTIONS request");
-
             var response = context.Response;
             response.StatusCode = 200;
 
@@ -1049,8 +973,6 @@ namespace WatsonWebserver
             response.AddHeader("Host", ListenerPrefix);
             response.ContentLength64 = 0;
             response.Close();
-
-            Logging.Log("Thread " + Thread.CurrentThread.ManagedThreadId + " sent OPTIONS response");
         }
 
         #endregion
