@@ -520,3 +520,6 @@ paket-files/
 *.sln.iml
 bin
 obj
+packages
+obj
+bin

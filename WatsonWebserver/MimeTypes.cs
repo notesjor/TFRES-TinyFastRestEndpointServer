@@ -3,15 +3,17 @@ using System.Collections.Generic;
 
 namespace WatsonWebserver
 {
-    public class MimeTypes
-    {
-        // Thank you https://github.com/samuelneff/MimeTypeMap/blob/master/src/MimeTypes/MimeTypeMap.cs
+  public class MimeTypes
+  {
+    // Thank you https://github.com/samuelneff/MimeTypeMap/blob/master/src/MimeTypes/MimeTypeMap.cs
 
-        #region Private-Members
+    #region Private-Members
 
-        private static readonly IDictionary<string, string> data = new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase) {
-
+    private static readonly IDictionary<string, string> data =
+      new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
+      {
         #region MIME-Types
+
         // combination of values from Windows 7 Registry and 
         // from C:\Windows\System32\inetsrv\config\applicationHost.config
         // some added, including .7z and .dat
@@ -591,36 +593,27 @@ namespace WatsonWebserver
         {".z", "application/x-compress"},
         {".zip", "application/zip"},
 
-            #endregion
-
-        };
-
         #endregion
+      };
 
-        #region Public-Members
+    #endregion
 
-        #endregion
+    #region Public-Members
 
-        #region Constructors-and-Factories
+    #endregion
 
-        public MimeTypes()
-        {
+    #region Constructors-and-Factories
 
-        }
+    public static string GetFromExtension(string extension)
+    {
+      if (string.IsNullOrEmpty(nameof(extension))) return null;
 
-        public static string GetFromExtension(string extension)
-        {
-            if (String.IsNullOrEmpty(nameof(extension))) return null;
+      if (!extension.StartsWith(".")) extension = "." + extension;
 
-            if (!extension.StartsWith("."))
-            {
-                extension = "." + extension;
-            }
-
-            string mime;
-            return data.TryGetValue(extension, out mime) ? mime : "application/octet-stream";
-        }
-
-        #endregion
+      string mime;
+      return data.TryGetValue(extension, out mime) ? mime : "application/octet-stream";
     }
+
+    #endregion
+  }
 }
