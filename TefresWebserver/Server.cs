@@ -133,6 +133,16 @@ namespace Tfres
 
               #endregion
 
+              #region Process-OPTIONS-Request
+
+              if (currRequest.Method == "OPTIONS")
+              {
+                OptionsProcessor(context, currRequest);
+                return;
+              }
+
+              #endregion
+
               #region Send-to-Handler
 
               Task.Run(() =>
@@ -490,6 +500,51 @@ namespace Tfres
       {
         response?.Close();
       }
+    }
+
+    private void OptionsProcessor(HttpListenerContext context, HttpRequest req)
+    {
+      var response = context.Response;
+      response.StatusCode = 200;
+
+      string[] requestedHeaders = null;
+      if (req.Headers != null)
+        foreach (var curr in req.Headers)
+        {
+          if (string.IsNullOrEmpty(curr.Key)) continue;
+          if (string.IsNullOrEmpty(curr.Value)) continue;
+          if (string.CompareOrdinal(curr.Key.ToLower(), "access-control-request-headers") == 0)
+          {
+            requestedHeaders = curr.Value.Split(',');
+            break;
+          }
+        }
+
+      var headers = "";
+
+      if (requestedHeaders != null)
+      {
+        var addedCount = 0;
+        foreach (var curr in requestedHeaders)
+        {
+          if (string.IsNullOrEmpty(curr)) continue;
+          if (addedCount > 0) headers += ", ";
+          headers += ", " + curr;
+          addedCount++;
+        }
+      }
+
+      response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, COPY, HEAD, OPTIONS, LINK, UNLINK, PURGE, LOCK, UNLOCK, PROPFIND, VIEW");
+      response.AddHeader("Access-Control-Allow-Headers", "*, Content-Type, X-Requested-With, " + headers);
+      response.AddHeader("Access-Control-Expose-Headers", "Content-Type, X-Requested-With, "   + headers);
+      response.AddHeader("Access-Control-Allow-Origin", "*");
+      response.AddHeader("Accept", "*/*");
+      response.AddHeader("Accept-Language", "en-US, en");
+      response.AddHeader("Accept-Charset", "ISO-8859-1, utf-8");
+      response.AddHeader("Connection", "keep-alive");
+      response.AddHeader("Host", _listenerPrefix);
+      response.ContentLength64 = 0;
+      response.Close();
     }
 
     #endregion

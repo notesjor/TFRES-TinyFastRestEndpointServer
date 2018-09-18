@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Web;
 using Newtonsoft.Json;
 
 namespace Tfres
@@ -1076,7 +1077,23 @@ namespace Tfres
     /// <returns>Post-Data as T</returns>
     public T PostData<T>()
     {
+      if (ContentType == "text/plain")
+        return JsonConvert.DeserializeObject<T>(DecodingPlaintext(Encoding.UTF8.GetString(Data)));
       return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(Data));
+    }
+
+    private string DecodingPlaintext(string data)
+    {
+      var chars = data.Split(new[]{"&"}, StringSplitOptions.RemoveEmptyEntries);
+      var stb = new StringBuilder();
+
+      foreach (var c in chars)
+      {
+        var inner = c.Split(new[] {"="}, StringSplitOptions.RemoveEmptyEntries);
+        stb.Append(HttpUtility.UrlDecode(inner[1]));
+      }
+
+      return stb.ToString();
     }
 
     #endregion
