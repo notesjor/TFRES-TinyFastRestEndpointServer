@@ -31,7 +31,6 @@ namespace WatsonWebserver
 
       _endpointManager = new EndpointManager();
       _defaultRoute = defaultRequestHandler;
-      OptionsRoute = null;
 
       _tokenSource = new CancellationTokenSource();
       var token = _tokenSource.Token;
@@ -46,8 +45,6 @@ namespace WatsonWebserver
     ///   Indicates whether or not the server is listening.
     /// </summary>
     public bool IsListening => _http != null ? _http.IsListening : false;
-
-    public Func<HttpRequest, HttpResponse> OptionsRoute;
 
     #endregion
 
@@ -136,29 +133,15 @@ namespace WatsonWebserver
 
               #endregion
 
-              #region Process-OPTIONS-Request
-
-              if (currRequest.Method.ToLower().Trim().Contains("option")
-               && OptionsRoute != null)
-              {
-                OptionsProcessor(context, currRequest);
-                return;
-              }
-
-              #endregion
-
               #region Send-to-Handler
 
               Task.Run(() =>
               {
-                HttpResponse currResponse;
-                Func<HttpRequest, HttpResponse> handler;
-
                 #region Find-Route
 
                 Enum.TryParse(currRequest.Method, out HttpVerb verb);
-                handler = _endpointManager.Match(verb, currRequest.RawUrlWithoutQuery);
-                currResponse = handler != null ? handler(currRequest) : DefaultRouteProcessor(context, currRequest);
+                var handler = _endpointManager.Match(verb, currRequest.RawUrlWithoutQuery);
+                var currResponse = handler != null ? handler(currRequest) : DefaultRouteProcessor(context, currRequest);
 
                 #endregion
 
@@ -507,51 +490,6 @@ namespace WatsonWebserver
       {
         response?.Close();
       }
-    }
-
-    private void OptionsProcessor(HttpListenerContext context, HttpRequest req)
-    {
-      var response = context.Response;
-      response.StatusCode = 200;
-
-      string[] requestedHeaders = null;
-      if (req.Headers != null)
-        foreach (var curr in req.Headers)
-        {
-          if (string.IsNullOrEmpty(curr.Key)) continue;
-          if (string.IsNullOrEmpty(curr.Value)) continue;
-          if (string.CompareOrdinal(curr.Key.ToLower(), "access-control-request-headers") == 0)
-          {
-            requestedHeaders = curr.Value.Split(',');
-            break;
-          }
-        }
-
-      var headers = "";
-
-      if (requestedHeaders != null)
-      {
-        var addedCount = 0;
-        foreach (var curr in requestedHeaders)
-        {
-          if (string.IsNullOrEmpty(curr)) continue;
-          if (addedCount > 0) headers += ", ";
-          headers += ", " + curr;
-          addedCount++;
-        }
-      }
-
-      response.AddHeader("Access-Control-Allow-Methods", "OPTIONS, HEAD, GET, PUT, POST, DELETE");
-      response.AddHeader("Access-Control-Allow-Headers", "*, Content-Type, X-Requested-With, " + headers);
-      response.AddHeader("Access-Control-Expose-Headers", "Content-Type, X-Requested-With, "   + headers);
-      response.AddHeader("Access-Control-Allow-Origin", "*");
-      response.AddHeader("Accept", "*/*");
-      response.AddHeader("Accept-Language", "en-US, en");
-      response.AddHeader("Accept-Charset", "ISO-8859-1, utf-8");
-      response.AddHeader("Connection", "keep-alive");
-      response.AddHeader("Host", _listenerPrefix);
-      response.ContentLength64 = 0;
-      response.Close();
     }
 
     #endregion
