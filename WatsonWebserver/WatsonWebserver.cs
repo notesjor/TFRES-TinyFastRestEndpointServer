@@ -82,9 +82,8 @@ namespace WatsonWebserver
     /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
     /// <param name="path">The raw URL to match, i.e. /foo/bar.</param>
     /// <param name="handler">The method to which control should be passed.</param>
-    public void AddEndpoint(string verb, string path, Func<HttpRequest, HttpResponse> handler)
+    public void AddEndpoint(HttpVerb verb, string path, Func<HttpRequest, HttpResponse> handler)
     {
-      if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
 
@@ -157,7 +156,8 @@ namespace WatsonWebserver
 
                 #region Find-Route
 
-                handler = _endpointManager.Match(currRequest.Method, currRequest.RawUrlWithoutQuery);
+                Enum.TryParse(currRequest.Method, out HttpVerb verb);
+                handler = _endpointManager.Match(verb, currRequest.RawUrlWithoutQuery);
                 currResponse = handler != null ? handler(currRequest) : DefaultRouteProcessor(context, currRequest);
 
                 #endregion

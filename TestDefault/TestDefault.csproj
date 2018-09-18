@@ -24,6 +24,7 @@
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>
     </CodeAnalysisRuleSet>
+    <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>

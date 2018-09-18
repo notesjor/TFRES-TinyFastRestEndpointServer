@@ -22,7 +22,7 @@ namespace WatsonWebserver
     {
       if (route == null) throw new ArgumentNullException(nameof(route));
 
-      route.Verb = route.Verb.ToLower();
+      route.Verb = route.Verb;
       route.Path = route.Path.ToLower();
       if (!route.Path.StartsWith("/")) route.Path = "/"      + route.Path;
       if (!route.Path.EndsWith("/")) route.Path = route.Path + "/";
@@ -50,9 +50,8 @@ namespace WatsonWebserver
 
     #region Public-Methods
 
-    public void Add(string verb, string path, Func<HttpRequest, HttpResponse> handler)
+    public void Add(HttpVerb verb, string path, Func<HttpRequest, HttpResponse> handler)
     {
-      if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
 
@@ -60,12 +59,10 @@ namespace WatsonWebserver
       Add(r);
     }
 
-    public Endpoint Get(string verb, string path)
+    public Endpoint Get(HttpVerb verb, string path)
     {
-      if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
-      verb = verb.ToLower();
       path = path.ToLower();
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
@@ -79,12 +76,10 @@ namespace WatsonWebserver
       }
     }
 
-    public bool Exists(string verb, string path)
+    public bool Exists(HttpVerb verb, string path)
     {
-      if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
-      verb = verb.ToLower();
       path = path.ToLower();
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
@@ -98,12 +93,10 @@ namespace WatsonWebserver
       return true;
     }
 
-    public Func<HttpRequest, HttpResponse> Match(string verb, string path)
+    public Func<HttpRequest, HttpResponse> Match(HttpVerb verb, string path)
     {
-      if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
-      verb = verb.ToLower();
       path = path.ToLower();
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";

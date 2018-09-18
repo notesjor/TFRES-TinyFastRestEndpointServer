@@ -15,13 +15,11 @@ namespace WatsonWebserver
     /// <param name="verb">The HTTP verb, i.e. GET, PUT, POST, DELETE, etc.</param>
     /// <param name="path">The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.</param>
     /// <param name="handler">The method that should be called to handle the request.</param>
-    public Endpoint(string verb, string path, Func<HttpRequest, HttpResponse> handler)
+    public Endpoint(HttpVerb verb, string path, Func<HttpRequest, HttpResponse> handler)
     {
-      if (string.IsNullOrEmpty(verb)) throw new ArgumentNullException(nameof(verb));
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-      if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-      Verb = verb.ToLower();
+      Verb = verb;
 
       Path = path.ToLower();
       if (!Path.StartsWith("/")) Path = "/" + Path;
@@ -37,7 +35,7 @@ namespace WatsonWebserver
     /// <summary>
     ///   The HTTP verb, i.e. GET, PUT, POST, DELETE, etc.
     /// </summary>
-    public string Verb;
+    public HttpVerb Verb;
 
     /// <summary>
     ///   The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.
