@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace WatsonWebserver
+namespace Tfres
 {
   public class MimeTypes
   {

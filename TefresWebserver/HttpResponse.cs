@@ -1,9 +1,9 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Newtonsoft.Json;
 
-namespace WatsonWebserver
+namespace Tfres
 {
   public class HttpResponse
   {
@@ -267,8 +267,8 @@ namespace WatsonWebserver
         }
         else
         {
-          ContentLength = WatsonCommon.SerializeJson(Data).Length;
-          Data = WatsonCommon.SerializeJson(Data);
+          ContentLength = TfresCommon.SerializeJson(Data).Length;
+          Data = TfresCommon.SerializeJson(Data);
         }
       }
       else
@@ -324,7 +324,7 @@ namespace WatsonWebserver
         else if (Data is string)
           ret += Data + Environment.NewLine;
         else
-          ret += WatsonCommon.SerializeJson(Data) + Environment.NewLine;
+          ret += TfresCommon.SerializeJson(Data) + Environment.NewLine;
       }
       else
       {
@@ -344,11 +344,11 @@ namespace WatsonWebserver
       ret.Add("success", Success);
       if (Data != null)
       {
-        ret.Add("md5", WatsonCommon.CalculateMd5(Data.ToString()));
+        ret.Add("md5", TfresCommon.CalculateMd5(Data.ToString()));
         ret.Add("data", Data);
       }
 
-      return WatsonCommon.SerializeJson(ret);
+      return TfresCommon.SerializeJson(ret);
     }
 
     /// <summary>
@@ -401,7 +401,7 @@ namespace WatsonWebserver
           ret = AppendBytes(ret, Encoding.UTF8.GetBytes((string) Data));
           break;
         default:
-          ret = AppendBytes(ret, Encoding.UTF8.GetBytes(WatsonCommon.SerializeJson(Data)));
+          ret = AppendBytes(ret, Encoding.UTF8.GetBytes(TfresCommon.SerializeJson(Data)));
           break;
       }
 

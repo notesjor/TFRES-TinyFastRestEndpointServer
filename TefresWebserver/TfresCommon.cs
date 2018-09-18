@@ -5,12 +5,12 @@ using System.Security.Cryptography;
 using System.Text;
 using Newtonsoft.Json;
 
-namespace WatsonWebserver
+namespace Tfres
 {
   /// <summary>
   ///   Commonly used static methods.
   /// </summary>
-  public class WatsonCommon
+  public class TfresCommon
   {
     #region Public-Members
 

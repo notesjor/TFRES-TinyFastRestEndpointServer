@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace WatsonWebserver
+namespace Tfres
 {
   /// <summary>
   ///   Assign a method handler for when requests are received matching the supplied verb and path.

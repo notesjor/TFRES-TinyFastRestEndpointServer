@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using Newtonsoft.Json;
 
-namespace WatsonWebserver
+namespace Tfres
 {
   /// <summary>
   ///   Data extracted from an incoming HTTP request.
@@ -292,7 +292,7 @@ namespace WatsonWebserver
                 inVal = 0;
 
                 if (!string.IsNullOrEmpty(tempVal)) tempVal = Uri.EscapeUriString(tempVal);
-                QuerystringEntries = WatsonCommon.AddToDict(tempKey, tempVal, QuerystringEntries);
+                QuerystringEntries = TfresCommon.AddToDict(tempKey, tempVal, QuerystringEntries);
 
                 tempKey = "";
                 tempVal = "";
@@ -304,7 +304,7 @@ namespace WatsonWebserver
           if (inVal == 1)
           {
             if (!string.IsNullOrEmpty(tempVal)) tempVal = Uri.EscapeUriString(tempVal);
-            QuerystringEntries = WatsonCommon.AddToDict(tempKey, tempVal, QuerystringEntries);
+            QuerystringEntries = TfresCommon.AddToDict(tempKey, tempVal, QuerystringEntries);
           }
         }
 
@@ -341,7 +341,7 @@ namespace WatsonWebserver
       {
         var key = string.Copy(ctx.Request.Headers.GetKey(i));
         var val = string.Copy(ctx.Request.Headers.Get(i));
-        Headers = WatsonCommon.AddToDict(key, val, Headers);
+        Headers = TfresCommon.AddToDict(key, val, Headers);
       }
 
       #endregion
@@ -361,7 +361,7 @@ namespace WatsonWebserver
               Data = new byte[ContentLength];
               var bodyStream = ctx.Request.InputStream;
 
-              Data = WatsonCommon.StreamToBytes(bodyStream);
+              Data = TfresCommon.StreamToBytes(bodyStream);
             }
           }
           catch (Exception)
@@ -1174,7 +1174,7 @@ namespace WatsonWebserver
             else if (keyEval.Equals("content-type"))
               ret.ContentType = val;
             else
-              ret.Headers = WatsonCommon.AddToDict(key, val, ret.Headers);
+              ret.Headers = TfresCommon.AddToDict(key, val, ret.Headers);
           }
 
           #endregion
@@ -1273,7 +1273,7 @@ namespace WatsonWebserver
             inVal = 0;
 
             if (!string.IsNullOrEmpty(tempVal)) tempVal = Uri.EscapeUriString(tempVal);
-            ret = WatsonCommon.AddToDict(tempKey, tempVal, ret);
+            ret = TfresCommon.AddToDict(tempKey, tempVal, ret);
 
             tempKey = "";
             tempVal = "";
@@ -1285,7 +1285,7 @@ namespace WatsonWebserver
         if (inVal == 1)
         {
           if (!string.IsNullOrEmpty(tempVal)) tempVal = Uri.EscapeUriString(tempVal);
-          ret = WatsonCommon.AddToDict(tempKey, tempVal, ret);
+          ret = TfresCommon.AddToDict(tempKey, tempVal, ret);
         }
       }
 

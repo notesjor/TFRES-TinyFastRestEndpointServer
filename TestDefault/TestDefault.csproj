@@ -56,9 +56,9 @@
     <None Include="TestDefault.ruleset" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WatsonWebserver\WatsonWebserver.csproj">
+    <ProjectReference Include="..\TefresWebserver\TFRES.csproj">
       <Project>{63f6b9f6-ff80-4764-bd45-109d549bf459}</Project>
-      <Name>WatsonWebserver</Name>
+      <Name>TFRES</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

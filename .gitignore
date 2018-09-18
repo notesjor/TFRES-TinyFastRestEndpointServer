@@ -523,3 +523,4 @@ obj
 packages
 obj
 bin
+*.snk

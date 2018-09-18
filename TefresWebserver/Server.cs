@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace WatsonWebserver
+namespace Tfres
 {
   public class Server : IDisposable
   {
@@ -153,7 +153,7 @@ namespace WatsonWebserver
                                context,
                                currRequest,
                                BuildErrorResponse(500, "Unable to generate response", null),
-                               WatsonCommon.AddToDict("content-type", "application/json", null),
+                               TfresCommon.AddToDict("content-type", "application/json", null),
                                500);
                   return;
                 }
@@ -164,7 +164,7 @@ namespace WatsonWebserver
 
                 if (currResponse.Headers != null && currResponse.Headers.Count > 0)
                   foreach (var curr in currResponse.Headers)
-                    headers = WatsonCommon.AddToDict(curr.Key, curr.Value, headers);
+                    headers = TfresCommon.AddToDict(curr.Key, curr.Value, headers);
 
                 SendResponse(
                              context,
@@ -271,7 +271,7 @@ namespace WatsonWebserver
       }
 
       ret.Add("text", text);
-      return Encoding.UTF8.GetBytes(WatsonCommon.SerializeJson(ret));
+      return Encoding.UTF8.GetBytes(TfresCommon.SerializeJson(ret));
     }
 
     private void SendResponse(
@@ -304,7 +304,7 @@ namespace WatsonWebserver
               break;
             }
             default:
-              responseLen = WatsonCommon.SerializeJson(data).Length;
+              responseLen = TfresCommon.SerializeJson(data).Length;
               break;
           }
         }
@@ -444,7 +444,7 @@ namespace WatsonWebserver
               #region other
 
               response.ContentLength64 = responseLen;
-              output.Write(Encoding.UTF8.GetBytes(WatsonCommon.SerializeJson(data)), 0, responseLen);
+              output.Write(Encoding.UTF8.GetBytes(TfresCommon.SerializeJson(data)), 0, responseLen);
               output.Close();
 
               #endregion

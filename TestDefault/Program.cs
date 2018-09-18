@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using WatsonWebserver;
+using Tfres;
 
 namespace TestDefault
 {
@@ -17,7 +17,7 @@ namespace TestDefault
       bool runForever = true;
       while (runForever)
       {
-        string userInput = WatsonCommon.InputString("Command [? for help] >", null, false);
+        string userInput = TfresCommon.InputString("Command [? for help] >", null, false);
         switch (userInput.ToLower())
         {
           case "?":
