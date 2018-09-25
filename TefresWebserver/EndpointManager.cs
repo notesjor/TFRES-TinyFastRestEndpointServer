@@ -10,8 +10,8 @@ namespace Tfres
 
     public EndpointManager()
     {
-      Routes = new List<Endpoint>();
-      RouteLock = new object();
+      _routes = new List<Endpoint>();
+      _routeLock = new object();
     }
 
     #endregion
@@ -29,9 +29,9 @@ namespace Tfres
 
       if (Exists(route.Verb, route.Path)) return;
 
-      lock (RouteLock)
+      lock (_routeLock)
       {
-        Routes.Add(route);
+        _routes.Add(route);
       }
     }
 
@@ -43,8 +43,8 @@ namespace Tfres
 
     #region Private-Members
 
-    private readonly List<Endpoint> Routes;
-    private readonly object RouteLock;
+    private readonly List<Endpoint> _routes;
+    private readonly object _routeLock;
 
     #endregion
 
@@ -59,7 +59,7 @@ namespace Tfres
       Add(r);
     }
 
-    public Endpoint Get(HttpVerb verb, string path)
+    private bool Exists(HttpVerb verb, string path)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
@@ -67,27 +67,10 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (RouteLock)
+      lock (_routeLock)
       {
-        var curr = Routes.FirstOrDefault(i => i.Verb == verb && i.Path == path);
-        if (curr == null || curr == default(Endpoint))
-          return null;
-        return curr;
-      }
-    }
-
-    public bool Exists(HttpVerb verb, string path)
-    {
-      if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
-      path = path.ToLower();
-      if (!path.StartsWith("/")) path = "/" + path;
-      if (!path.EndsWith("/")) path = path  + "/";
-
-      lock (RouteLock)
-      {
-        var curr = Routes.FirstOrDefault(i => i.Verb == verb && i.Path == path);
-        if (curr == null || curr == default(Endpoint)) return false;
+        var curr = _routes.FirstOrDefault(i => i.Verb == verb && i.Path == path);
+        if (curr == null) return false;
       }
 
       return true;
@@ -101,9 +84,9 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (RouteLock)
+      lock (_routeLock)
       {
-        return Routes.FirstOrDefault(i => i.Verb == verb && i.Path == path)?.Handler;
+        return _routes.FirstOrDefault(i => i.Verb == verb && i.Path == path)?.Handler;
       }
     }
 

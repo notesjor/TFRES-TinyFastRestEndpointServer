@@ -1,4 +1,7 @@
-﻿namespace Tfres
+﻿// ReSharper disable InconsistentNaming
+// ReSharper disable UnusedMember.Global
+// ReSharper disable IdentifierTypo
+namespace Tfres
 {
   public enum HttpVerb
   {

@@ -23,7 +23,7 @@ namespace Tfres
 
       Path = path.ToLower();
       if (!Path.StartsWith("/")) Path = "/" + Path;
-      if (!Path.EndsWith("/")) Path = Path  + "/";
+      if (!Path.EndsWith("/")) Path = Path + "/";
 
       Handler = handler;
     }
@@ -35,17 +35,17 @@ namespace Tfres
     /// <summary>
     ///   The HTTP verb, i.e. GET, PUT, POST, DELETE, etc.
     /// </summary>
-    public HttpVerb Verb;
+    public HttpVerb Verb { get; internal set; }
 
     /// <summary>
     ///   The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.
     /// </summary>
-    public string Path;
+    public string Path { get; internal set; }
 
     /// <summary>
     ///   The
     /// </summary>
-    public Func<HttpRequest, HttpResponse> Handler;
+    public Func<HttpRequest, HttpResponse> Handler { get; }
 
     #endregion
 

@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Tfres
 {
-  public class Server : IDisposable
+  public sealed class Server : IDisposable
   {
     #region Constructor
 
@@ -36,15 +36,6 @@ namespace Tfres
       var token = _tokenSource.Token;
       Task.Run(() => StartServer(token), token);
     }
-
-    #endregion
-
-    #region Public-Members
-
-    /// <summary>
-    ///   Indicates whether or not the server is listening.
-    /// </summary>
-    public bool IsListening => _http != null ? _http.IsListening : false;
 
     #endregion
 
@@ -91,7 +82,7 @@ namespace Tfres
 
     #region Private-Methods
 
-    protected virtual void Dispose(bool disposing)
+    private void Dispose(bool disposing)
     {
       if (disposing)
       {
@@ -145,6 +136,7 @@ namespace Tfres
 
               #region Send-to-Handler
 
+              // ReSharper disable once MethodSupportsCancellation
               Task.Run(() =>
               {
                 #region Find-Route
@@ -424,40 +416,47 @@ namespace Tfres
           {
             #region Response-Body-Attached
 
-            if (data is string)
+            switch (data)
             {
-              #region string
+              case string str:
+              {
+                #region string
 
-              if (!string.IsNullOrEmpty(data.ToString()))
-                if (data.ToString().Length > 0)
-                {
-                  var buffer = Encoding.UTF8.GetBytes(data.ToString());
-                  response.ContentLength64 = buffer.Length;
-                  output.Write(buffer, 0, buffer.Length);
-                  output.Close();
-                }
+                if (!string.IsNullOrEmpty(str))
+                  if (str.Length > 0)
+                  {
+                    var buffer = Encoding.UTF8.GetBytes(str);
+                    response.ContentLength64 = buffer.Length;
+                    output.Write(buffer, 0, buffer.Length);
+                    output.Close();
+                  }
 
-              #endregion
-            }
-            else if (data is byte[])
-            {
-              #region byte-array
+                #endregion
 
-              response.ContentLength64 = responseLen;
-              output.Write((byte[]) data, 0, responseLen);
-              output.Close();
+                break;
+              }
+              case byte[] bytes:
 
-              #endregion
-            }
-            else
-            {
-              #region other
+                #region byte-array
 
-              response.ContentLength64 = responseLen;
-              output.Write(Encoding.UTF8.GetBytes(TfresCommon.SerializeJson(data)), 0, responseLen);
-              output.Close();
+                response.ContentLength64 = responseLen;
+                output.Write(bytes, 0, responseLen);
+                output.Close();
 
-              #endregion
+                #endregion
+
+                break;
+              default:
+
+                #region other
+
+                response.ContentLength64 = responseLen;
+                output.Write(Encoding.UTF8.GetBytes(TfresCommon.SerializeJson(data)), 0, responseLen);
+                output.Close();
+
+                #endregion
+
+                break;
             }
 
             #endregion
@@ -498,7 +497,7 @@ namespace Tfres
       }
       finally
       {
-        response?.Close();
+        response.Close();
       }
     }
 
