@@ -1,73 +1,36 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Newtonsoft.Json;
 using Tfres;
 
-namespace TestDefault
+namespace Application
 {
   static class Program
   {
-    static void Main()
+    static void Main(string[] args)
     {
-      Server server = new Server("127.0.0.1", 9000, RequestReceived);
-      server.AddEndpoint(HttpVerb.POST, "/", RequestPost);
+      Server s = new Server("127.0.0.1", 9000, DefaultRoute);
 
-      bool runForever = true;
-      while (runForever)
-      {
-        string userInput = TfresCommon.InputString("Command [? for help] >", null, false);
-        switch (userInput.ToLower())
-        {
-          case "?":
-            Menu();
-            break;
+      // add static routes
+      s.AddEndpoint(HttpVerb.GET, "/helloWorld/", GetHelloRoute);
+      s.AddEndpoint(HttpVerb.GET, "/jsonObj/", GetJsonObjRoute);
 
-          case "q":
-            runForever = false;
-            break;
-
-          case "c":
-          case "cls":
-            Console.Clear();
-            break;
-
-          case "state":
-            Console.WriteLine("Listening: " + server.IsListening);
-            break;
-
-          case "dispose":
-            server.Dispose();
-            break;
-        }
-      }
+      Console.WriteLine("Press ENTER to exit");
+      Console.ReadLine();
     }
 
-    static void Menu()
-    {
-      Console.WriteLine("---");
-      Console.WriteLine("  ?        help, this menu");
-      Console.WriteLine("  q        quit the application");
-      Console.WriteLine("  cls      clear the screen");
-      Console.WriteLine("  state    indicate whether or not the server is listening");
-      Console.WriteLine("  dispose  dispose the server object");
-    }
+    static HttpResponse DefaultRoute(HttpRequest req)
+      => new HttpResponse(req, true, 200, null, "text/plain", "Hello from the default route!");
 
-    static HttpResponse RequestReceived(HttpRequest req)
-    {
-      // for an encapsulated JSON response:
-      // {"success":true,"md5":"BE3DB22E4FDF3021162C013320CEED09","data":"Watson says hello!"}
-      // resp = new HttpResponse(req, true, 200, null, "text/plain", "Watson says hello!", false);
+    static HttpResponse GetHelloRoute(HttpRequest req)
+      => new HttpResponse(req, true, 200, null, "text/plain", "Hello from the GET /hello static route!");
 
-      // for a response containing only the string data...
-      // Watson says hello!
-      return new HttpResponse(req, true, 200, null, "text/plain", "Watson says hello from the default route!");
-    }
+    private static HttpResponse GetJsonObjRoute(HttpRequest req) =>
+      new HttpResponse(req, true, 200, null, "application/json", JsonConvert.SerializeObject(new Person { Name = "Jan", Animals = 1 }));
+  }
 
-    static HttpResponse RequestPost(HttpRequest req)
-    {
-      return new HttpResponse(req, true, 200, null, "text/plain", "Watson says hello from the post route!");
-    }
+  public class Person
+  {
+    public string Name { get; set; }
+    public int Animals { get; set; }
   }
 }

@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDefault", "TestDefault\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES", "TefresWebserver\TFRES.csproj", "{63F6B9F6-FF80-4764-BD45-109D549BF459}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TFRES.Core", "TFRES.Core\TFRES.Core.csproj", "{BAA4BAC9-8B80-48FD-B9D5-9556B3C8F492}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES.DotNetStandard", "TFRES.DotNetStandard\TFRES.DotNetStandard.csproj", "{641381C0-913B-4F07-BAE7-EACBBBCA33D6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +25,14 @@ Global
 		{63F6B9F6-FF80-4764-BD45-109D549BF459}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{63F6B9F6-FF80-4764-BD45-109D549BF459}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{63F6B9F6-FF80-4764-BD45-109D549BF459}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BAA4BAC9-8B80-48FD-B9D5-9556B3C8F492}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BAA4BAC9-8B80-48FD-B9D5-9556B3C8F492}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BAA4BAC9-8B80-48FD-B9D5-9556B3C8F492}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BAA4BAC9-8B80-48FD-B9D5-9556B3C8F492}.Release|Any CPU.Build.0 = Release|Any CPU
+		{641381C0-913B-4F07-BAE7-EACBBBCA33D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{641381C0-913B-4F07-BAE7-EACBBBCA33D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{641381C0-913B-4F07-BAE7-EACBBBCA33D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{641381C0-913B-4F07-BAE7-EACBBBCA33D6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
