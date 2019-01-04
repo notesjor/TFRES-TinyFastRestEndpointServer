@@ -13,6 +13,8 @@ namespace Application
       // add static routes
       s.AddEndpoint(HttpVerb.GET, "/helloWorld/", GetHelloRoute);
       s.AddEndpoint(HttpVerb.GET, "/jsonObj/", GetJsonObjRoute);
+      s.AddEndpoint(HttpVerb.POST, "/sayHello/", PostSayHelloRoute);
+      s.AddEndpoint(HttpVerb.GET, "/sayHello/", GetSayHelloRoute);
 
       Console.WriteLine("Press ENTER to exit");
       Console.ReadLine();
@@ -26,6 +28,12 @@ namespace Application
 
     private static HttpResponse GetJsonObjRoute(HttpRequest req) =>
       new HttpResponse(req, true, 200, null, "application/json", JsonConvert.SerializeObject(new Person { Name = "Jan", Animals = 1 }));
+
+    static HttpResponse PostSayHelloRoute(HttpRequest req)
+      => new HttpResponse(req, true, 200, null, "text/plain", $"Hello {req.PostData<Person>().Name}!");
+
+    static HttpResponse GetSayHelloRoute(HttpRequest req)
+      => new HttpResponse(req, true, 200, null, "text/plain", $"Hello {req.GetData()["name"]}!");
   }
 
   public class Person
