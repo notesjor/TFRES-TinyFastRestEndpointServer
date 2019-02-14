@@ -12,6 +12,153 @@ namespace Tfres
   /// </summary>
   public class HttpRequest
   {
+    #region Constructor
+
+    /// <summary>
+    ///   Construct a new HTTP request from a given HttpListenerContext.
+    /// </summary>
+    /// <param name="ctx">The HttpListenerContext for the request.</param>
+    public HttpRequest(HttpListenerContext ctx)
+    {
+      #region Check-for-Null-Values
+
+      if (ctx         == null) throw new ArgumentNullException(nameof(ctx));
+      if (ctx.Request == null) throw new ArgumentNullException(nameof(ctx.Request));
+
+      #endregion
+
+      #region Parse-Variables
+
+      var position = 0;
+      var inQuery = 0;
+      var tempString = "";
+      var queryString = "";
+
+      #endregion
+
+      #region Standard-Request-Items
+
+      TimestampUtc = DateTime.Now.ToUniversalTime();
+      _protocolVersion = "HTTP/" + ctx.Request.ProtocolVersion;
+      SourceIp = ctx.Request?.RemoteEndPoint?.Address?.ToString();
+      SourcePort = ctx.Request?.RemoteEndPoint?.Port ?? 0;
+      DestIp = ctx.Request?.LocalEndPoint?.Address?.ToString();
+      DestPort = ctx.Request?.LocalEndPoint?.Port ?? 0;
+      Method = ctx.Request.HttpMethod;
+      _fullUrl = string.Copy(ctx.Request.Url.ToString().Trim());
+      RawUrlWithoutQuery = string.Copy(ctx.Request.RawUrl.Trim());
+      _keepalive = ctx.Request.KeepAlive;
+      var contentLength = ctx.Request.ContentLength64;
+      _useragent = ctx.Request.UserAgent;
+      ContentType = ctx.Request.ContentType;
+
+      Headers = new Dictionary<string, string>();
+
+      #endregion
+
+      #region Raw-URL-and-Querystring
+
+      if (!string.IsNullOrEmpty(RawUrlWithoutQuery))
+      {
+        #region Process-Raw-URL-and-Populate-Raw-URL-Elements
+
+        foreach (var c in RawUrlWithoutQuery)
+        {
+          if (inQuery == 1)
+          {
+            queryString += c;
+            continue;
+          }
+
+          if (position                              == 0 &&
+              string.CompareOrdinal(tempString, "") == 0 &&
+              c                                     == '/')
+            continue;
+
+          if (c != '/' && c != '?') tempString += c;
+
+          if (c == '/' || c == '?')
+          {
+            position++;
+            tempString = "";
+          }
+
+          if (c == '?') inQuery = 1;
+        }
+
+        #endregion
+
+        #region Populate-Querystring
+
+        _querystring = queryString.Length > 0 ? queryString : null;
+
+        #endregion
+      }
+
+      #endregion
+
+      #region Remove-Querystring-from-Raw-URL
+
+      if (RawUrlWithoutQuery.Contains("?"))
+        RawUrlWithoutQuery = RawUrlWithoutQuery.Substring(0, RawUrlWithoutQuery.IndexOf("?", StringComparison.Ordinal));
+
+      #endregion
+
+      #region Check-for-Full-URL
+
+      try
+      {
+        var uri = new Uri(_fullUrl);
+        _destHostname = uri.Host;
+        _destHostPort = uri.Port;
+      }
+      catch (Exception)
+      {
+        // ignore
+      }
+
+      #endregion
+
+      #region Headers
+
+      Headers = new Dictionary<string, string>();
+      for (var i = 0; i < ctx.Request.Headers.Count; i++)
+      {
+        var key = string.Copy(ctx.Request.Headers.GetKey(i));
+        var val = string.Copy(ctx.Request.Headers.Get(i));
+        Headers = TfresCommon.AddToDict(key, val, Headers);
+      }
+
+      #endregion
+
+      #region Copy-Payload
+
+      if (contentLength > 0)
+        if (string.CompareOrdinal(Method.ToLower().Trim(), "get") != 0)
+          try
+          {
+            if (contentLength < 1)
+            {
+              _data = null;
+            }
+            else
+            {
+              _data = new byte[contentLength];
+              var bodyStream = ctx.Request.InputStream;
+
+              _data = TfresCommon.StreamToBytes(bodyStream);
+            }
+          }
+          catch (Exception)
+          {
+            _data = null;
+          }
+
+      #endregion
+    }
+
+    #endregion
+
     #region Public-Members
 
     /// <summary>
@@ -101,153 +248,6 @@ namespace Tfres
 
     #endregion
 
-    #region Constructor
-
-    /// <summary>
-    ///   Construct a new HTTP request from a given HttpListenerContext.
-    /// </summary>
-    /// <param name="ctx">The HttpListenerContext for the request.</param>
-    public HttpRequest(HttpListenerContext ctx)
-    {
-      #region Check-for-Null-Values
-
-      if (ctx == null) throw new ArgumentNullException(nameof(ctx));
-      if (ctx.Request == null) throw new ArgumentNullException(nameof(ctx.Request));
-
-      #endregion
-
-      #region Parse-Variables
-
-      var position = 0;
-      var inQuery = 0;
-      var tempString = "";
-      var queryString = "";
-
-      #endregion
-
-      #region Standard-Request-Items
-
-      TimestampUtc = DateTime.Now.ToUniversalTime();
-      _protocolVersion = "HTTP/" + ctx.Request.ProtocolVersion;
-      SourceIp = ctx.Request?.RemoteEndPoint?.Address?.ToString();
-      SourcePort = ctx.Request?.RemoteEndPoint?.Port ?? 0;
-      DestIp = ctx.Request?.LocalEndPoint?.Address?.ToString();
-      DestPort = ctx.Request?.LocalEndPoint?.Port ?? 0;
-      Method = ctx.Request.HttpMethod;
-      _fullUrl = string.Copy(ctx.Request.Url.ToString().Trim());
-      RawUrlWithoutQuery = string.Copy(ctx.Request.RawUrl.Trim());
-      _keepalive = ctx.Request.KeepAlive;
-      var contentLength = ctx.Request.ContentLength64;
-      _useragent = ctx.Request.UserAgent;
-      ContentType = ctx.Request.ContentType;
-
-      Headers = new Dictionary<string, string>();
-
-      #endregion
-
-      #region Raw-URL-and-Querystring
-
-      if (!string.IsNullOrEmpty(RawUrlWithoutQuery))
-      {
-        #region Process-Raw-URL-and-Populate-Raw-URL-Elements
-
-        foreach (var c in RawUrlWithoutQuery)
-        {
-          if (inQuery == 1)
-          {
-            queryString += c;
-            continue;
-          }
-
-          if (position == 0 &&
-              string.CompareOrdinal(tempString, "") == 0 &&
-              c == '/')
-            continue;
-
-          if (c != '/' && c != '?') tempString += c;
-
-          if (c == '/' || c == '?')
-          {
-            position++;
-            tempString = "";
-          }
-
-          if (c == '?') inQuery = 1;
-        }
-
-        #endregion
-
-        #region Populate-Querystring
-
-        _querystring = queryString.Length > 0 ? queryString : null;
-
-        #endregion
-      }
-
-      #endregion
-
-      #region Remove-Querystring-from-Raw-URL
-
-      if (RawUrlWithoutQuery.Contains("?"))
-        RawUrlWithoutQuery = RawUrlWithoutQuery.Substring(0, RawUrlWithoutQuery.IndexOf("?", StringComparison.Ordinal));
-
-      #endregion
-
-      #region Check-for-Full-URL
-
-      try
-      {
-        var uri = new Uri(_fullUrl);
-        _destHostname = uri.Host;
-        _destHostPort = uri.Port;
-      }
-      catch (Exception)
-      {
-        // ignore
-      }
-
-      #endregion
-
-      #region Headers
-
-      Headers = new Dictionary<string, string>();
-      for (var i = 0; i < ctx.Request.Headers.Count; i++)
-      {
-        var key = string.Copy(ctx.Request.Headers.GetKey(i));
-        var val = string.Copy(ctx.Request.Headers.Get(i));
-        Headers = TfresCommon.AddToDict(key, val, Headers);
-      }
-
-      #endregion
-
-      #region Copy-Payload
-
-      if (contentLength > 0)
-        if (string.CompareOrdinal(Method.ToLower().Trim(), "get") != 0)
-          try
-          {
-            if (contentLength < 1)
-            {
-              _data = null;
-            }
-            else
-            {
-              _data = new byte[contentLength];
-              var bodyStream = ctx.Request.InputStream;
-
-              _data = TfresCommon.StreamToBytes(bodyStream);
-            }
-          }
-          catch (Exception)
-          {
-            _data = null;
-          }
-
-      #endregion
-    }
-
-    #endregion
-
     #region Public-Internal-Classes
 
     #endregion
@@ -270,14 +270,14 @@ namespace Tfres
 
       ret += "--- HTTP Request ---" + Environment.NewLine;
       ret += TimestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " " + SourceIp + ":" + SourcePort + " to " + DestIp + ":" +
-             DestPort + Environment.NewLine;
-      ret += "  " + Method + " " + RawUrlWithoutQuery + " " + _protocolVersion + Environment.NewLine;
-      ret += "  Full URL    : " + _fullUrl + Environment.NewLine;
-      ret += "  Raw URL     : " + RawUrlWithoutQuery + Environment.NewLine;
-      ret += "  Querystring : " + _querystring + Environment.NewLine;
+             DestPort                                     + Environment.NewLine;
+      ret += "  " + Method + " " + RawUrlWithoutQuery + " " + _protocolVersion   + Environment.NewLine;
+      ret += "  Full URL    : " + _fullUrl                                       + Environment.NewLine;
+      ret += "  Raw URL     : " + RawUrlWithoutQuery                             + Environment.NewLine;
+      ret += "  Querystring : " + _querystring                                   + Environment.NewLine;
       ret += "  Useragent   : " + _useragent + " (Keepalive " + _keepalive + ")" + Environment.NewLine;
       ret += "  Content     : " + ContentType + " (" + contentLength + " bytes)" + Environment.NewLine;
-      ret += "  Destination : " + _destHostname + ":" + _destHostPort + Environment.NewLine;
+      ret += "  Destination : " + _destHostname + ":" + _destHostPort            + Environment.NewLine;
 
       if (Headers != null && Headers.Count > 0)
       {
@@ -291,7 +291,7 @@ namespace Tfres
 
       if (_data != null)
       {
-        ret += "  Data        : " + Environment.NewLine;
+        ret += "  Data        : "             + Environment.NewLine;
         ret += Encoding.UTF8.GetString(_data) + Environment.NewLine;
       }
       else
@@ -306,52 +306,59 @@ namespace Tfres
     ///   Return Post-Data as T
     /// </summary>
     /// <returns>Post-Data as T</returns>
-    public T PostData<T>() => JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(_data));
+    public T PostData<T>()
+    {
+      return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(_data));
+    }
 
     public byte[] PostDataAsByteArray => _data;
 
     public string PostDataAsString => Encoding.UTF8.GetString(_data);
 
     /// <summary>
-    /// Return Data send as GET-Parameter
+    ///   Return Data send as GET-Parameter
     /// </summary>
     /// <returns></returns>
     public Dictionary<string, string> GetData(bool keyToLowercase = true)
     {
-      if (string.IsNullOrEmpty(_querystring))
-        return new Dictionary<string, string>();
-
-      var split = _querystring.Split(new[] { "&" }, StringSplitOptions.RemoveEmptyEntries);
-      var res = new Dictionary<string, string>();
-      foreach (var x in split)
+      try
       {
-        try
-        {
-          var entry = x.Split(new[] {"="}, StringSplitOptions.RemoveEmptyEntries);
-          if(entry.Length!=2)
-            continue;
+        if (string.IsNullOrEmpty(_querystring))
+          return new Dictionary<string, string>();
 
-          var key = HttpUtility.UrlDecode(entry[0]);
-          if (keyToLowercase)
-            key = key.ToLower();
+        var split = _querystring.Split(new[] {"&"}, StringSplitOptions.RemoveEmptyEntries);
+        var res = new Dictionary<string, string>();
+        foreach (var x in split)
+          try
+          {
+            var entry = x.Split(new[] {"="}, StringSplitOptions.RemoveEmptyEntries);
+            if (entry.Length != 2)
+              continue;
 
-          if (res.ContainsKey(key))
-            res[key] = HttpUtility.UrlDecode(entry[1]);
-          else
-            res.Add(key, HttpUtility.UrlDecode(entry[1]));
-        }
-        catch
-        {
-          // ignore
-        }
+            var key = HttpUtility.UrlDecode(entry[0]);
+            if (keyToLowercase)
+              key = key.ToLower();
+
+            if (res.ContainsKey(key))
+              res[key] = HttpUtility.UrlDecode(entry[1]);
+            else
+              res.Add(key, HttpUtility.UrlDecode(entry[1]));
+          }
+          catch
+          {
+            // ignore
+          }
+
+        return res;
       }
-
-      return res;
+      catch
+      {
+        return new Dictionary<string, string>();
+      }
     }
 
     public string GetDataAsString => _querystring;
 
     #endregion
-
   }
 }

@@ -291,7 +291,6 @@ namespace Tfres
         #region Set-Variables
 
         if (data != null)
-        {
           switch (data)
           {
             case string _:
@@ -309,7 +308,6 @@ namespace Tfres
               responseLen = TfresCommon.SerializeJson(data).Length;
               break;
           }
-        }
 
         #endregion
 
@@ -533,7 +531,8 @@ namespace Tfres
         }
       }
 
-      response.AddHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, COPY, HEAD, OPTIONS, LINK, UNLINK, PURGE, LOCK, UNLOCK, PROPFIND, VIEW");
+      response.AddHeader("Access-Control-Allow-Methods",
+                         "GET, POST, PUT, PATCH, DELETE, COPY, HEAD, OPTIONS, LINK, UNLINK, PURGE, LOCK, UNLOCK, PROPFIND, VIEW");
       response.AddHeader("Access-Control-Allow-Headers", "*, Content-Type, X-Requested-With, " + headers);
       response.AddHeader("Access-Control-Expose-Headers", "Content-Type, X-Requested-With, "   + headers);
       response.AddHeader("Access-Control-Allow-Origin", "*");

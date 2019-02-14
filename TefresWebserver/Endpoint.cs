@@ -23,7 +23,7 @@ namespace Tfres
 
       Path = path.ToLower();
       if (!Path.StartsWith("/")) Path = "/" + Path;
-      if (!Path.EndsWith("/")) Path = Path + "/";
+      if (!Path.EndsWith("/")) Path = Path  + "/";
 
       Handler = handler;
     }

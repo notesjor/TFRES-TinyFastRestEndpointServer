@@ -7,6 +7,59 @@ namespace Tfres
 {
   public class HttpResponse
   {
+    #region Public-Methods
+
+    /// <summary>
+    ///   Retrieve a string-formatted, human-readable copy of the HttpResponse instance.
+    /// </summary>
+    /// <returns>String-formatted, human-readable copy of the HttpResponse instance.</returns>
+    public override string ToString()
+    {
+      var ret = "";
+
+      ret += "--- HTTP Response ---" + Environment.NewLine;
+      ret += _timestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " "  + _sourceIp + ":" + _sourcePort + " to " +
+             _destIp                                       + ":"  +
+             _destPort                                     + "  " + _method + " " + _rawUrlWithoutQuery +
+             Environment.NewLine;
+      ret += "  Success : " + _success                                        + Environment.NewLine;
+      ret += "  Content : " + ContentType + " (" + _contentLength + " bytes)" + Environment.NewLine;
+      if (Headers != null && Headers.Count > 0)
+      {
+        ret += "  Headers : " + Environment.NewLine;
+        foreach (var curr in Headers) ret += "    " + curr.Key + ": " + curr.Value + Environment.NewLine;
+      }
+      else
+      {
+        ret += "  Headers : none" + Environment.NewLine;
+      }
+
+      if (Data != null)
+      {
+        ret += "  Data    : " + Environment.NewLine;
+        switch (Data)
+        {
+          case byte[] bytes:
+            ret += Encoding.UTF8.GetString(bytes) + Environment.NewLine;
+            break;
+          case string str:
+            ret += str + Environment.NewLine;
+            break;
+          default:
+            ret += TfresCommon.SerializeJson(Data) + Environment.NewLine;
+            break;
+        }
+      }
+      else
+      {
+        ret += "  Data    : [null]" + Environment.NewLine;
+      }
+
+      return ret;
+    }
+
+    #endregion
+
     //
     //
     // Do not serialize this object directly when sending a response.  Use the .ToJson() method instead
@@ -110,7 +163,8 @@ namespace Tfres
     public HttpResponse(HttpRequest req, bool success, int status, Dictionary<string, string> headers,
                         string contentType, object data) : this(req, success, status, headers, contentType,
                                                                 JsonConvert.SerializeObject(data))
-    {}
+    {
+    }
 
     /// <summary>
     ///   Create a new HttpResponse object.
@@ -120,7 +174,8 @@ namespace Tfres
     /// <param name="status">The HTTP status code to return to the requestor (client).</param>
     /// <param name="headers">User-supplied headers to include in the response.</param>
     /// <param name="contentType">User-supplied content-type to include in the response.</param>
-    /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.
+    /// <param name="data">
+    ///   The data to return to the requestor in the response body.  This must be either a byte[] or string.
     ///   Indicates whether or not the response Data should be enapsulated in a JSON object containing
     ///   standard fields including 'success'.
     /// </param>
@@ -152,7 +207,6 @@ namespace Tfres
       #region Check-Data
 
       if (Data != null)
-      {
         switch (Data)
         {
           case byte[] bytes:
@@ -166,11 +220,8 @@ namespace Tfres
             Data = TfresCommon.SerializeJson(Data);
             break;
         }
-      }
       else
-      {
         _contentLength = 0;
-      }
 
       #endregion
     }
@@ -182,59 +233,6 @@ namespace Tfres
     #endregion
 
     #region Private-Internal-Classes
-
-    #endregion
-
-    #region Public-Methods
-
-    /// <summary>
-    ///   Retrieve a string-formatted, human-readable copy of the HttpResponse instance.
-    /// </summary>
-    /// <returns>String-formatted, human-readable copy of the HttpResponse instance.</returns>
-    public override string ToString()
-    {
-      var ret = "";
-
-      ret += "--- HTTP Response ---" + Environment.NewLine;
-      ret += _timestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " "  + _sourceIp + ":" + _sourcePort + " to " +
-             _destIp                                       + ":"  +
-             _destPort                                     + "  " + _method + " " + _rawUrlWithoutQuery +
-             Environment.NewLine;
-      ret += "  Success : " + _success                                        + Environment.NewLine;
-      ret += "  Content : " + ContentType + " (" + _contentLength + " bytes)" + Environment.NewLine;
-      if (Headers != null && Headers.Count > 0)
-      {
-        ret += "  Headers : " + Environment.NewLine;
-        foreach (var curr in Headers) ret += "    " + curr.Key + ": " + curr.Value + Environment.NewLine;
-      }
-      else
-      {
-        ret += "  Headers : none" + Environment.NewLine;
-      }
-
-      if (Data != null)
-      {
-        ret += "  Data    : " + Environment.NewLine;
-        switch (Data)
-        {
-          case byte[] bytes:
-            ret += Encoding.UTF8.GetString(bytes) + Environment.NewLine;
-            break;
-          case string str:
-            ret += str + Environment.NewLine;
-            break;
-          default:
-            ret += TfresCommon.SerializeJson(Data) + Environment.NewLine;
-            break;
-        }
-      }
-      else
-      {
-        ret += "  Data    : [null]" + Environment.NewLine;
-      }
-
-      return ret;
-    }
 
     #endregion
   }
