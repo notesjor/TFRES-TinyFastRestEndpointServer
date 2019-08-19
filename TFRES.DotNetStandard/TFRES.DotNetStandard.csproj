@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
@@ -8,10 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\TefresWebserver\Documentation\SericeDocumentation.cs" Link="Documentation\SericeDocumentation.cs" />
-    <Compile Include="..\TefresWebserver\Documentation\ServiceArgument.cs" Link="Documentation\ServiceArgument.cs" />
-    <Compile Include="..\TefresWebserver\Documentation\ServiceEndpoint.cs" Link="Documentation\ServiceEndpoint.cs" />
-    <Compile Include="..\TefresWebserver\Documentation\ServiceParameter.cs" Link="Documentation\ServiceParameter.cs" />
     <Compile Include="..\TefresWebserver\Endpoint.cs" Link="Endpoint.cs" />
     <Compile Include="..\TefresWebserver\EndpointManager.cs" Link="EndpointManager.cs" />
     <Compile Include="..\TefresWebserver\HttpRequest.cs" Link="HttpRequest.cs" />
@@ -22,11 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Documentation\" />
+    <PackageReference Include="Microsoft.OpenApi" Version="1.1.3" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
   </ItemGroup>
 
 </Project>
