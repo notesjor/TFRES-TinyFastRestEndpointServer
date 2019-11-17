@@ -156,6 +156,30 @@ namespace Tfres
     /// <param name="req">The HttpRequest object for which this request is being created.</param>
     /// <param name="success">Indicates whether or not the request was successful.</param>
     /// <param name="status">The HTTP status code to return to the requestor (client).</param>
+    /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.</param>
+    // ReSharper disable once UnusedMember.Global
+    public HttpResponse(HttpRequest req, bool success, int status, object data) : this(req, success, status, null, "application/json", JsonConvert.SerializeObject(data))
+    {
+    }
+
+    /// <summary>
+    ///   Create a new HttpResponse object.
+    /// </summary>
+    /// <param name="req">The HttpRequest object for which this request is being created.</param>
+    /// <param name="success">Indicates whether or not the request was successful.</param>
+    /// <param name="status">The HTTP status code to return to the requestor (client).</param>
+    /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.</param>
+    // ReSharper disable once UnusedMember.Global
+    public HttpResponse(HttpRequest req, bool success, int status, string message) : this(req, success, status, null, "text/plain", message)
+    {
+    }
+
+    /// <summary>
+    ///   Create a new HttpResponse object.
+    /// </summary>
+    /// <param name="req">The HttpRequest object for which this request is being created.</param>
+    /// <param name="success">Indicates whether or not the request was successful.</param>
+    /// <param name="status">The HTTP status code to return to the requestor (client).</param>
     /// <param name="headers">User-supplied headers to include in the response.</param>
     /// <param name="contentType">User-supplied content-type to include in the response.</param>
     /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.</param>
@@ -163,6 +187,17 @@ namespace Tfres
     public HttpResponse(HttpRequest req, bool success, int status, Dictionary<string, string> headers,
                         string contentType, object data) : this(req, success, status, headers, contentType,
                                                                 JsonConvert.SerializeObject(data))
+    {
+    }
+
+    /// <summary>
+    ///   Create a new HttpResponse object. Response is a StatusCode only.
+    /// </summary>
+    /// <param name="req">The HttpRequest object for which this request is being created.</param>
+    /// <param name="success">Indicates whether or not the request was successful.</param>
+    /// <param name="status">The HTTP status code to return to the requestor (client).</param>
+    // ReSharper disable once UnusedMember.Global
+    public HttpResponse(HttpRequest req, bool success, int status) : this(req, success, status, null, null, null)
     {
     }
 

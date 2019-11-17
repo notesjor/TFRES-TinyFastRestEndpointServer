@@ -56,6 +56,7 @@
     <Compile Include="EndpointManager.cs" />
     <Compile Include="HttpRequest.cs" />
     <Compile Include="HttpResponse.cs" />
+    <Compile Include="OpenApiHelper.cs" />
     <Compile Include="Server.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="TfresCommon.cs" />
