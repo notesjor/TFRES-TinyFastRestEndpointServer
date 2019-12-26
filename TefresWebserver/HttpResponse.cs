@@ -2,15 +2,90 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 #endregion
 
 namespace Tfres
 {
+  /// <summary>
+  ///   Response to an HTTP request.
+  /// </summary>
   public class HttpResponse
   {
+    #region Public-Members
+
+    /// <summary>
+    ///   The HTTP status code to return to the requestor (client).
+    /// </summary>
+    public int StatusCode = 200;
+
+    /// <summary>
+    ///   The HTTP status description to return to the requestor (client).
+    /// </summary>
+    public string StatusDescription = "OK";
+
+    /// <summary>
+    ///   User-supplied headers to include in the response.
+    /// </summary>
+    public Dictionary<string, string> Headers = new Dictionary<string, string>();
+
+    /// <summary>
+    ///   User-supplied content-type to include in the response.
+    /// </summary>
+    public string ContentType = string.Empty;
+
+    /// <summary>
+    ///   The length of the supplied response data.
+    /// </summary>
+    public long ContentLength;
+
+    /// <summary>
+    ///   Indicates whether or not chunked transfer encoding should be indicated in the response.
+    /// </summary>
+    public bool ChunkedTransfer = false;
+
+    #endregion
+
+    #region Private-Members
+
+    private readonly int _StreamBufferSize = 65536;
+
+    private readonly HttpRequest _Request;
+    private readonly HttpListenerContext _Context;
+    private readonly HttpListenerResponse _Response;
+    private readonly Stream _OutputStream;
+    private bool _HeadersSent;
+
+    #endregion
+
+    #region Constructors-and-Factories
+
+    /// <summary>
+    ///   Instantiate the object.
+    /// </summary>
+    private HttpResponse()
+    {
+    }
+    
+    internal HttpResponse(HttpRequest req, HttpListenerContext ctx, int bufferSize)
+    {
+      if (req == null) throw new ArgumentNullException(nameof(req));
+      if (ctx == null) throw new ArgumentNullException(nameof(ctx));
+
+      _Request = req;
+      _Context = ctx;
+      _Response = _Context.Response;
+      _StreamBufferSize = bufferSize;
+      _OutputStream = _Response.OutputStream;
+    }
+
+    #endregion
+
     #region Public-Methods
 
     /// <summary>
@@ -21,261 +96,353 @@ namespace Tfres
     {
       var ret = "";
 
-      ret += "--- HTTP Response ---" + Environment.NewLine;
-      ret += _timestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " "  + _sourceIp + ":" + _sourcePort + " to " +
-             _destIp                                       + ":"  +
-             _destPort                                     + "  " + _method + " " + _rawUrlWithoutQuery +
-             Environment.NewLine;
-      ret += "  Success : " + _success                                        + Environment.NewLine;
-      ret += "  Content : " + ContentType + " (" + _contentLength + " bytes)" + Environment.NewLine;
+      ret += "--- HTTP Response ---"                              + Environment.NewLine;
+      ret += "  Status Code        : " + StatusCode               + Environment.NewLine;
+      ret += "  Status Description : " + StatusDescription        + Environment.NewLine;
+      ret += "  Content            : " + ContentType              + Environment.NewLine;
+      ret += "  Content Length     : " + ContentLength + " bytes" + Environment.NewLine;
+      ret += "  Chunked Transfer   : " + ChunkedTransfer          + Environment.NewLine;
       if (Headers != null && Headers.Count > 0)
       {
-        ret += "  Headers : " + Environment.NewLine;
-        foreach (var curr in Headers) ret += "    " + curr.Key + ": " + curr.Value + Environment.NewLine;
+        ret += "  Headers            : " + Environment.NewLine;
+        foreach (var curr in Headers) ret += "  - " + curr.Key + ": " + curr.Value + Environment.NewLine;
       }
       else
       {
-        ret += "  Headers : none" + Environment.NewLine;
-      }
-
-      if (Data != null)
-      {
-        ret += "  Data    : " + Environment.NewLine;
-        switch (Data)
-        {
-          case byte[] bytes:
-            ret += Encoding.UTF8.GetString(bytes) + Environment.NewLine;
-            break;
-          case string str:
-            ret += str + Environment.NewLine;
-            break;
-          default:
-            ret += TfresCommon.SerializeJson(Data) + Environment.NewLine;
-            break;
-        }
-      }
-      else
-      {
-        ret += "  Data    : [null]" + Environment.NewLine;
+        ret += "  Headers          : none" + Environment.NewLine;
       }
 
       return ret;
     }
 
-    #endregion
-
-    //
-    //
-    // Do not serialize this object directly when sending a response.  Use the .ToJson() method instead
-    // since the JSON output will not match in terms of actual class member names and such.
-    //
-    //
-
-    #region Public-Members
-
-    //
-    // Values from the request
-    //
-
     /// <summary>
-    ///   UTC timestamp from when the response was generated.
+    ///   Send headers and no data to the requestor and terminate the connection.
     /// </summary>
-    private readonly DateTime _timestampUtc;
-
-    /// <summary>
-    ///   IP address of the requestor (client).
-    /// </summary>
-    private readonly string _sourceIp;
-
-    /// <summary>
-    ///   TCP port from which the request originated on the requestor (client).
-    /// </summary>
-    private readonly int _sourcePort;
-
-    /// <summary>
-    ///   IP address of the recipient (server).
-    /// </summary>
-    private readonly string _destIp;
-
-    /// <summary>
-    ///   TCP port on which the request was received by the recipient (server).
-    /// </summary>
-    private readonly int _destPort;
-
-    /// <summary>
-    ///   The HTTP verb used in the request.
-    /// </summary>
-    private readonly string _method;
-
-    /// <summary>
-    ///   The raw (relative) URL without the querystring attached.
-    /// </summary>
-    private readonly string _rawUrlWithoutQuery;
-
-    //
-    // Response values
-    //
-
-    /// <summary>
-    ///   The HTTP status code to return to the requestor (client).
-    /// </summary>
-    public int StatusCode { get; }
-
-    /// <summary>
-    ///   Indicates whether or not the request was successful, which populates the 'success' flag in the JSON response.
-    /// </summary>
-    private readonly bool _success;
-
-    /// <summary>
-    ///   User-supplied headers to include in the response.
-    /// </summary>
-    public Dictionary<string, string> Headers { get; }
-
-    /// <summary>
-    ///   User-supplied content-type to include in the response.
-    /// </summary>
-    public string ContentType { get; }
-
-    /// <summary>
-    ///   The length of the supplied response data.
-    /// </summary>
-    private readonly long _contentLength;
-
-    /// <summary>
-    ///   The data to return to the requestor in the response body.  This must be either a byte[] or string.
-    /// </summary>
-    public object Data { get; }
-
-    #endregion
-
-    #region Private-Members
-
-    #endregion
-
-    #region Constructor
-
-    /// <summary>
-    ///   Create a new HttpResponse object.
-    /// </summary>
-    /// <param name="req">The HttpRequest object for which this request is being created.</param>
-    /// <param name="success">Indicates whether or not the request was successful.</param>
-    /// <param name="status">The HTTP status code to return to the requestor (client).</param>
-    /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.</param>
-    // ReSharper disable once UnusedMember.Global
-    public HttpResponse(HttpRequest req, bool success, int status, object data) : this(req, success, status, null,
-                                                                                       "application/json",
-                                                                                       JsonConvert
-                                                                                        .SerializeObject(data))
+    /// <returns>True if successful.</returns>
+    public async Task<bool> Send()
     {
+      if (ChunkedTransfer)
+        throw new
+          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
+      if (!_HeadersSent) SendHeaders();
+
+      await _OutputStream.FlushAsync();
+      _OutputStream.Close();
+
+      if (_Response != null) _Response.Close();
+      return true;
     }
 
     /// <summary>
-    ///   Create a new HttpResponse object.
+    ///   Send headers with a specified content length and no data to the requestor and terminate the connection.  Useful for
+    ///   HEAD requests where the content length must be set.
     /// </summary>
-    /// <param name="req">The HttpRequest object for which this request is being created.</param>
-    /// <param name="success">Indicates whether or not the request was successful.</param>
-    /// <param name="status">The HTTP status code to return to the requestor (client).</param>
-    /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.</param>
-    // ReSharper disable once UnusedMember.Global
-    public HttpResponse(HttpRequest req, bool success, int status, string message) : this(req, success, status, null,
-                                                                                          "text/plain", message)
+    /// <returns>True if successful.</returns>
+    public async Task<bool> Send(long contentLength)
     {
+      if (ChunkedTransfer)
+        throw new
+          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
+      ContentLength = contentLength;
+      if (!_HeadersSent) SendHeaders();
+
+      await _OutputStream.FlushAsync();
+      _OutputStream.Close();
+
+      if (_Response != null) _Response.Close();
+      return true;
     }
 
     /// <summary>
-    ///   Create a new HttpResponse object.
+    ///   Send headers and data to the requestor and terminate the connection.
     /// </summary>
-    /// <param name="req">The HttpRequest object for which this request is being created.</param>
-    /// <param name="success">Indicates whether or not the request was successful.</param>
-    /// <param name="status">The HTTP status code to return to the requestor (client).</param>
-    /// <param name="headers">User-supplied headers to include in the response.</param>
-    /// <param name="contentType">User-supplied content-type to include in the response.</param>
-    /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.</param>
-    // ReSharper disable once UnusedMember.Global
-    public HttpResponse(HttpRequest req, bool success, int status, Dictionary<string, string> headers,
-                        string contentType, object data) : this(req, success, status, headers, contentType,
-                                                                JsonConvert.SerializeObject(data))
+    /// <param name="data">Data.</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> Send(string data)
     {
-    }
+      if (ChunkedTransfer)
+        throw new
+          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
+      if (!_HeadersSent) SendHeaders();
 
-    /// <summary>
-    ///   Create a new HttpResponse object. Response is a StatusCode only.
-    /// </summary>
-    /// <param name="req">The HttpRequest object for which this request is being created.</param>
-    /// <param name="success">Indicates whether or not the request was successful.</param>
-    /// <param name="status">The HTTP status code to return to the requestor (client).</param>
-    // ReSharper disable once UnusedMember.Global
-    public HttpResponse(HttpRequest req, bool success, int status) : this(req, success, status, null, null, null)
-    {
-    }
-
-    /// <summary>
-    ///   Create a new HttpResponse object.
-    /// </summary>
-    /// <param name="req">The HttpRequest object for which this request is being created.</param>
-    /// <param name="success">Indicates whether or not the request was successful.</param>
-    /// <param name="status">The HTTP status code to return to the requestor (client).</param>
-    /// <param name="headers">User-supplied headers to include in the response.</param>
-    /// <param name="contentType">User-supplied content-type to include in the response.</param>
-    /// <param name="data">
-    ///   The data to return to the requestor in the response body.  This must be either a byte[] or string.
-    ///   Indicates whether or not the response Data should be enapsulated in a JSON object containing
-    ///   standard fields including 'success'.
-    /// </param>
-    public HttpResponse(HttpRequest req, bool success, int status, Dictionary<string, string> headers,
-                        string contentType, string data)
-    {
-      if (req == null) throw new ArgumentNullException(nameof(req));
-
-      #region Set-Base-Variables
-
-      _timestampUtc = req.TimestampUtc;
-      _sourceIp = req.SourceIp;
-      _sourcePort = req.SourcePort;
-      _destIp = req.DestIp;
-      _destPort = req.DestPort;
-      _method = req.Method;
-      _rawUrlWithoutQuery = req.RawUrlWithoutQuery;
-
-      _success = success;
-      Headers = headers;
-      ContentType = contentType;
-      if (string.IsNullOrEmpty(ContentType)) ContentType = "application/json";
-
-      StatusCode = status;
-      Data = data;
-
-      #endregion
-
-      #region Check-Data
-
-      if (Data != null)
-        switch (Data)
-        {
-          case byte[] bytes:
-            _contentLength = bytes.Length;
-            break;
-          case string s:
-            _contentLength = s.Length;
-            break;
-          default:
-            _contentLength = TfresCommon.SerializeJson(Data).Length;
-            Data = TfresCommon.SerializeJson(Data);
-            break;
-        }
+      byte[] bytes = null;
+      if (!string.IsNullOrEmpty(data))
+      {
+        bytes = Encoding.UTF8.GetBytes(data);
+        _Response.ContentLength64 = bytes.Length;
+      }
       else
-        _contentLength = 0;
+      {
+        _Response.ContentLength64 = 0;
+      }
 
-      #endregion
+      try
+      {
+        if (_Request.Method != HttpVerb.HEAD)
+          if (bytes != null && bytes.Length > 0)
+            await _OutputStream.WriteAsync(bytes, 0, bytes.Length);
+      }
+      catch
+      {
+        // do nothing
+        return false;
+      }
+      finally
+      {
+        await _OutputStream.FlushAsync();
+        _OutputStream.Close();
+
+        if (_Response != null) _Response.Close();
+      }
+
+      return true;
+    }
+
+    /// <summary>
+    ///   Send headers and data to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="data">Data.</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> Send(byte[] data)
+    {
+      if (ChunkedTransfer)
+        throw new
+          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
+      if (!_HeadersSent) SendHeaders();
+
+      if (data != null && data.Length > 0) _Response.ContentLength64 = data.Length;
+      else _Response.ContentLength64 = 0;
+
+      try
+      {
+        if (_Request.Method != HttpVerb.HEAD)
+          if (data != null && data.Length > 0)
+            await _OutputStream.WriteAsync(data, 0, (int) _Response.ContentLength64);
+      }
+      catch
+      {
+        // do nothing
+        return false;
+      }
+      finally
+      {
+        await _OutputStream.FlushAsync();
+        _OutputStream.Close();
+
+        if (_Response != null) _Response.Close();
+      }
+
+      return true;
+    }
+
+    /// <summary>
+    ///   Send headers and data to the requestor and terminate.
+    /// </summary>
+    /// <param name="contentLength">Number of bytes to send.</param>
+    /// <param name="stream">Stream containing the data.</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> Send(long contentLength, Stream stream)
+    {
+      if (ChunkedTransfer)
+        throw new
+          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
+      ContentLength = contentLength;
+      if (!_HeadersSent) SendHeaders();
+
+      try
+      {
+        if (_Request.Method != HttpVerb.HEAD)
+          if (stream != null && stream.CanRead && contentLength > 0)
+          {
+            var bytesRemaining = contentLength;
+
+            while (bytesRemaining > 0)
+            {
+              var bytesRead = 0;
+              var buffer = new byte[_StreamBufferSize];
+              bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+              if (bytesRead > 0)
+              {
+                await _OutputStream.WriteAsync(buffer, 0, bytesRead);
+                bytesRemaining -= bytesRead;
+              }
+            }
+
+            stream.Close();
+            stream.Dispose();
+          }
+      }
+      catch
+      {
+        // do nothing
+        return false;
+      }
+      finally
+      {
+        await _OutputStream.FlushAsync();
+        _OutputStream.Close();
+
+        if (_Response != null) _Response.Close();
+      }
+
+      return true;
+    }
+
+    /// <summary>
+    ///   Send headers (if not already sent) and a chunk of data using chunked transfer-encoding, and keep the connection
+    ///   in-tact.
+    /// </summary>
+    /// <param name="chunk">Chunk of data.</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> SendChunk(byte[] chunk)
+    {
+      if (!ChunkedTransfer)
+        throw new
+          IOException("Response is not configured to use chunked transfer-encoding.  Set ChunkedTransfer to true first, otherwise use Send().");
+      if (!_HeadersSent) SendHeaders();
+
+      try
+      {
+        if (chunk == null || chunk.Length < 1) chunk = new byte[0];
+
+        // byte[] packagedChunk = PackageChunk(chunk);
+        // await _OutputStream.WriteAsync(packagedChunk, 0, packagedChunk.Length);
+        await _OutputStream.WriteAsync(chunk, 0, chunk.Length);
+      }
+      catch
+      {
+        // do nothing
+        return false;
+      }
+      finally
+      {
+        await _OutputStream.FlushAsync();
+        // do not close or dispose
+      }
+
+      return true;
+    }
+
+    /// <summary>
+    ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
+    ///   connection.
+    /// </summary>
+    /// <param name="chunk">Chunk of data.</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> SendFinalChunk(byte[] chunk)
+    {
+      if (!ChunkedTransfer)
+        throw new
+          IOException("Response is not configured to use chunked transfer-encoding.  Set ChunkedTransfer to true first, otherwise use Send().");
+      if (!_HeadersSent) SendHeaders();
+
+      try
+      {
+        if (chunk != null && chunk.Length > 0) await _OutputStream.WriteAsync(chunk, 0, chunk.Length);
+
+        var endChunk = new byte[0];
+        await _OutputStream.WriteAsync(endChunk, 0, endChunk.Length);
+      }
+      catch
+      {
+        // do nothing
+        return false;
+      }
+      finally
+      {
+        await _OutputStream.FlushAsync();
+        _OutputStream.Close();
+
+        if (_Response != null) _Response.Close();
+      }
+
+      return true;
     }
 
     #endregion
 
-    #region Public-Internal-Classes
+    #region Private-Methods
 
-    #endregion
+    private void SendHeaders()
+    {
+      if (_HeadersSent) throw new IOException("Headers already sent.");
 
-    #region Private-Internal-Classes
+      _Response.ContentLength64 = ContentLength;
+      _Response.StatusCode = StatusCode;
+      _Response.StatusDescription = GetStatusDescription(StatusCode);
+      _Response.SendChunked = ChunkedTransfer;
+      _Response.AddHeader("Access-Control-Allow-Origin", "*");
+      _Response.ContentType = ContentType;
+
+      if (Headers != null && Headers.Count > 0)
+        foreach (var curr in Headers)
+        {
+          if (string.IsNullOrEmpty(curr.Key)) continue;
+          _Response.AddHeader(curr.Key, curr.Value);
+        }
+
+      _HeadersSent = true;
+    }
+
+    private string GetStatusDescription(int statusCode)
+    {
+      switch (statusCode)
+      {
+        case 200:
+          return "OK";
+        case 201:
+          return "Created";
+        case 301:
+          return "Moved Permanently";
+        case 302:
+          return "Moved Temporarily";
+        case 304:
+          return "Not Modified";
+        case 400:
+          return "Bad Request";
+        case 401:
+          return "Unauthorized";
+        case 403:
+          return "Forbidden";
+        case 404:
+          return "Not Found";
+        case 405:
+          return "Method Not Allowed";
+        case 429:
+          return "Too Many Requests";
+        case 500:
+          return "Internal Server Error";
+        case 501:
+          return "Not Implemented";
+        case 503:
+          return "Service Unavailable";
+        default:
+          return "Unknown Status";
+      }
+    }
+
+    private byte[] PackageChunk(byte[] chunk)
+    {
+      if (chunk == null || chunk.Length < 1) return Encoding.UTF8.GetBytes("0\r\n\r\n");
+
+      var ms = new MemoryStream();
+
+      var newlineStr = "\r\n";
+      var newline = Encoding.UTF8.GetBytes(newlineStr);
+
+      var chunkLenHex = chunk.Length.ToString("X");
+      var chunkLen = Encoding.UTF8.GetBytes(chunkLenHex);
+
+      ms.Write(chunkLen, 0, chunkLen.Length);
+      ms.Write(newline, 0, newline.Length);
+      ms.Write(chunk, 0, chunk.Length);
+      ms.Write(newline, 0, newline.Length);
+      ms.Seek(0, SeekOrigin.Begin);
+
+      var ret = ms.ToArray();
+
+      return ret;
+    }
 
     #endregion
   }

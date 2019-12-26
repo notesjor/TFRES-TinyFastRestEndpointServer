@@ -1,31 +1,29 @@
 ﻿#region
 
 using System;
-using System.Threading.Tasks;
 
 #endregion
 
 namespace Tfres
 {
   /// <summary>
-  ///   Assign a method handler for when requests are received matching the supplied method and path.
+  ///   Assign a method handler for when requests are received matching the supplied verb and path.
   /// </summary>
-  public class Endpoint
+  internal class Endpoint
   {
     #region Constructors-and-Factories
 
     /// <summary>
     ///   Create a new route object.
     /// </summary>
-    /// <param name="method">The HTTP method, i.e. GET, PUT, POST, DELETE, etc.</param>
+    /// <param name="verb">The HTTP verb, i.e. GET, PUT, POST, DELETE, etc.</param>
     /// <param name="path">The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.</param>
     /// <param name="handler">The method that should be called to handle the request.</param>
-    public Endpoint(HttpVerb method, string path, Func<HttpContext, Task> handler)
+    public Endpoint(HttpVerb verb, string path, Func<HttpRequest, HttpResponse> handler)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-      if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-      Method = method;
+      Verb = verb;
 
       Path = path.ToLower();
       if (!Path.StartsWith("/")) Path = "/" + Path;
@@ -39,19 +37,19 @@ namespace Tfres
     #region Public-Members
 
     /// <summary>
-    ///   The HTTP method, i.e. GET, PUT, POST, DELETE, etc.
+    ///   The HTTP verb, i.e. GET, PUT, POST, DELETE, etc.
     /// </summary>
-    public HttpVerb Method;
+    public HttpVerb Verb { get; internal set; }
 
     /// <summary>
     ///   The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.
     /// </summary>
-    public string Path;
+    public string Path { get; internal set; }
 
     /// <summary>
     ///   The
     /// </summary>
-    public Func<HttpContext, Task> Handler;
+    public Func<HttpRequest, HttpResponse> Handler { get; }
 
     #endregion
 

@@ -2,8 +2,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 using Newtonsoft.Json;
 
@@ -16,12 +21,165 @@ namespace Tfres
   /// </summary>
   public class HttpRequest
   {
-    #region Constructor
+    #region Public-Members
 
     /// <summary>
-    ///   Construct a new HTTP request from a given HttpListenerContext.
+    ///   UTC timestamp from when the request was received.
     /// </summary>
-    /// <param name="ctx">The HttpListenerContext for the request.</param>
+    public DateTime TimestampUtc;
+
+    /// <summary>
+    ///   Thread ID on which the request exists.
+    /// </summary>
+    public int ThreadId;
+
+    /// <summary>
+    ///   The protocol and version.
+    /// </summary>
+    public string ProtocolVersion;
+
+    /// <summary>
+    ///   IP address of the requestor (client).
+    /// </summary>
+    public string SourceIp;
+
+    /// <summary>
+    ///   TCP port from which the request originated on the requestor (client).
+    /// </summary>
+    public int SourcePort;
+
+    /// <summary>
+    ///   IP address of the recipient (server).
+    /// </summary>
+    public string DestIp;
+
+    /// <summary>
+    ///   TCP port on which the request was received by the recipient (server).
+    /// </summary>
+    public int DestPort;
+
+    /// <summary>
+    ///   The destination hostname as found in the request line, if present.
+    /// </summary>
+    public string DestHostname;
+
+    /// <summary>
+    ///   The destination host port as found in the request line, if present.
+    /// </summary>
+    public int DestHostPort;
+
+    /// <summary>
+    ///   Specifies whether or not the client requested HTTP keepalives.
+    /// </summary>
+    public bool Keepalive;
+
+    /// <summary>
+    ///   The HTTP method used in the request.
+    /// </summary>
+    public HttpVerb Method;
+
+    /// <summary>
+    ///   Indicates whether or not chunked transfer encoding was detected.
+    /// </summary>
+    public bool ChunkedTransfer;
+
+    /// <summary>
+    ///   Indicates whether or not the payload has been gzip compressed.
+    /// </summary>
+    public bool Gzip;
+
+    /// <summary>
+    ///   Indicates whether or not the payload has been deflate compressed.
+    /// </summary>
+    public bool Deflate;
+
+    /// <summary>
+    ///   The full URL as sent by the requestor (client).
+    /// </summary>
+    public string FullUrl;
+
+    /// <summary>
+    ///   The raw (relative) URL with the querystring attached.
+    /// </summary>
+    public string RawUrlWithQuery;
+
+    /// <summary>
+    ///   The raw (relative) URL without the querystring attached.
+    /// </summary>
+    public string RawUrlWithoutQuery;
+
+    /// <summary>
+    ///   List of items found in the raw URL.
+    /// </summary>
+    public List<string> RawUrlEntries;
+
+    /// <summary>
+    ///   The querystring attached to the URL.
+    /// </summary>
+    public string Querystring;
+
+    /// <summary>
+    ///   Dictionary containing key-value pairs from items found in the querystring.
+    /// </summary>
+    public Dictionary<string, string> QuerystringEntries;
+
+    /// <summary>
+    ///   The useragent specified in the request.
+    /// </summary>
+    public string Useragent;
+
+    /// <summary>
+    ///   The number of bytes in the request body.
+    /// </summary>
+    public long ContentLength;
+
+    /// <summary>
+    ///   The content type as specified by the requestor (client).
+    /// </summary>
+    public string ContentType;
+
+    /// <summary>
+    ///   The headers found in the request.
+    /// </summary>
+    public Dictionary<string, string> Headers;
+
+    /// <summary>
+    ///   The stream from which to read the request body sent by the requestor (client).
+    /// </summary>
+    [JsonIgnore] public Stream Data;
+
+    /// <summary>
+    ///   The original HttpListenerContext from which the HttpRequest was constructed.
+    /// </summary>
+    [JsonIgnore] public HttpListenerContext ListenerContext;
+
+    #endregion
+
+    #region Private-Members
+
+    private readonly Uri _Uri;
+    private static readonly int _TimeoutDataReadMs = 2000;
+    private static readonly int _DataReadSleepMs = 10;
+
+    #endregion
+
+    #region Constructors-and-Factories
+
+    /// <summary>
+    ///   Instantiate the object.
+    /// </summary>
+    public HttpRequest()
+    {
+      ThreadId = Thread.CurrentThread.ManagedThreadId;
+      TimestampUtc = DateTime.Now.ToUniversalTime();
+      QuerystringEntries = new Dictionary<string, string>();
+      Headers = new Dictionary<string, string>();
+    }
+
+    /// <summary>
+    ///   Instantiate the object using an HttpListenerContext.
+    /// </summary>
+    /// <param name="ctx">HttpListenerContext.</param>
     public HttpRequest(HttpListenerContext ctx)
     {
       #region Check-for-Null-Values
@@ -38,24 +196,34 @@ namespace Tfres
       var tempString = "";
       var queryString = "";
 
+      var inKey = 0;
+      var inVal = 0;
+      var tempKey = "";
+      var tempVal = "";
+
       #endregion
 
       #region Standard-Request-Items
 
+      ThreadId = Thread.CurrentThread.ManagedThreadId;
       TimestampUtc = DateTime.Now.ToUniversalTime();
-      _protocolVersion = "HTTP/" + ctx.Request.ProtocolVersion;
-      SourceIp = ctx.Request?.RemoteEndPoint?.Address?.ToString();
-      SourcePort = ctx.Request?.RemoteEndPoint?.Port ?? 0;
-      DestIp = ctx.Request?.LocalEndPoint?.Address?.ToString();
-      DestPort = ctx.Request?.LocalEndPoint?.Port ?? 0;
-      Method = ctx.Request.HttpMethod;
-      _fullUrl = string.Copy(ctx.Request.Url.ToString().Trim());
+      ProtocolVersion = "HTTP/" + ctx.Request.ProtocolVersion;
+      SourceIp = ctx.Request.RemoteEndPoint.Address.ToString();
+      SourcePort = ctx.Request.RemoteEndPoint.Port;
+      DestIp = ctx.Request.LocalEndPoint.Address.ToString();
+      DestPort = ctx.Request.LocalEndPoint.Port;
+      Method = (HttpVerb) Enum.Parse(typeof(HttpVerb), ctx.Request.HttpMethod, true);
+      FullUrl = string.Copy(ctx.Request.Url.ToString().Trim());
+      RawUrlWithQuery = string.Copy(ctx.Request.RawUrl.Trim());
       RawUrlWithoutQuery = string.Copy(ctx.Request.RawUrl.Trim());
-      _keepalive = ctx.Request.KeepAlive;
-      var contentLength = ctx.Request.ContentLength64;
-      _useragent = ctx.Request.UserAgent;
+      Keepalive = ctx.Request.KeepAlive;
+      ContentLength = ctx.Request.ContentLength64;
+      Useragent = ctx.Request.UserAgent;
       ContentType = ctx.Request.ContentType;
+      ListenerContext = ctx;
 
+      RawUrlEntries = new List<string>();
+      QuerystringEntries = new Dictionary<string, string>();
       Headers = new Dictionary<string, string>();
 
       #endregion
@@ -64,7 +232,16 @@ namespace Tfres
 
       if (!string.IsNullOrEmpty(RawUrlWithoutQuery))
       {
+        #region Initialize-Variables
+
+        RawUrlEntries = new List<string>();
+        QuerystringEntries = new Dictionary<string, string>();
+
+        #endregion
+
         #region Process-Raw-URL-and-Populate-Raw-URL-Elements
+
+        while (RawUrlWithoutQuery.Contains("//")) RawUrlWithoutQuery = RawUrlWithoutQuery.Replace("//", "/");
 
         foreach (var c in RawUrlWithoutQuery)
         {
@@ -74,15 +251,20 @@ namespace Tfres
             continue;
           }
 
-          if (position                              == 0 &&
-              string.CompareOrdinal(tempString, "") == 0 &&
-              c                                     == '/')
+          if (position                       == 0 &&
+              string.Compare(tempString, "") == 0 &&
+              c                              == '/')
+            // skip the first slash
             continue;
 
           if (c != '/' && c != '?') tempString += c;
 
           if (c == '/' || c == '?')
           {
+            if (!string.IsNullOrEmpty(tempString))
+              // add to raw URL entries list
+              RawUrlEntries.Add(tempString);
+
             position++;
             tempString = "";
           }
@@ -90,11 +272,100 @@ namespace Tfres
           if (c == '?') inQuery = 1;
         }
 
+        if (!string.IsNullOrEmpty(tempString))
+          // add to raw URL entries list
+          RawUrlEntries.Add(tempString);
+
         #endregion
 
         #region Populate-Querystring
 
-        GetDataAsString = queryString.Length > 0 ? queryString : null;
+        if (queryString.Length > 0) Querystring = queryString;
+        else Querystring = null;
+
+        #endregion
+
+        #region Parse-Querystring
+
+        if (!string.IsNullOrEmpty(Querystring))
+        {
+          inKey = 1;
+          inVal = 0;
+          position = 0;
+          tempKey = "";
+          tempVal = "";
+
+          foreach (var c in Querystring)
+          {
+            if (inKey == 1)
+            {
+              if (c == '&')
+              {
+                // key with no value
+                if (!string.IsNullOrEmpty(tempKey))
+                {
+                  inKey = 1;
+                  inVal = 0;
+
+                  tempKey = WebUtility.UrlDecode(tempKey);
+                  QuerystringEntries = AddToDict(tempKey, null, QuerystringEntries);
+
+                  tempKey = "";
+                  tempVal = "";
+                  position++;
+                  continue;
+                }
+              }
+              else if (c != '=')
+              {
+                tempKey += c;
+              }
+              else
+              {
+                inKey = 0;
+                inVal = 1;
+                continue;
+              }
+            }
+
+            if (inVal == 1)
+            {
+              if (c != '&')
+              {
+                tempVal += c;
+              }
+              else
+              {
+                inKey = 1;
+                inVal = 0;
+
+                tempKey = WebUtility.UrlDecode(tempKey);
+                if (!string.IsNullOrEmpty(tempVal)) tempVal = WebUtility.UrlDecode(tempVal);
+                QuerystringEntries = AddToDict(tempKey, tempVal, QuerystringEntries);
+
+                tempKey = "";
+                tempVal = "";
+                position++;
+              }
+            }
+          }
+
+          if (inVal == 0)
+            // val will be null
+            if (!string.IsNullOrEmpty(tempKey))
+            {
+              tempKey = WebUtility.UrlDecode(tempKey);
+              QuerystringEntries = AddToDict(tempKey, null, QuerystringEntries);
+            }
+
+          if (inVal == 1)
+            if (!string.IsNullOrEmpty(tempKey))
+            {
+              tempKey = WebUtility.UrlDecode(tempKey);
+              if (!string.IsNullOrEmpty(tempVal)) tempVal = WebUtility.UrlDecode(tempVal);
+              QuerystringEntries = AddToDict(tempKey, tempVal, QuerystringEntries);
+            }
+        }
 
         #endregion
       }
@@ -104,7 +375,7 @@ namespace Tfres
       #region Remove-Querystring-from-Raw-URL
 
       if (RawUrlWithoutQuery.Contains("?"))
-        RawUrlWithoutQuery = RawUrlWithoutQuery.Substring(0, RawUrlWithoutQuery.IndexOf("?", StringComparison.Ordinal));
+        RawUrlWithoutQuery = RawUrlWithoutQuery.Substring(0, RawUrlWithoutQuery.IndexOf("?"));
 
       #endregion
 
@@ -112,13 +383,12 @@ namespace Tfres
 
       try
       {
-        var uri = new Uri(_fullUrl);
-        _destHostname = uri.Host;
-        _destHostPort = uri.Port;
+        _Uri = new Uri(FullUrl);
+        DestHostname = _Uri.Host;
+        DestHostPort = _Uri.Port;
       }
       catch (Exception)
       {
-        // ignore
       }
 
       #endregion
@@ -130,125 +400,494 @@ namespace Tfres
       {
         var key = string.Copy(ctx.Request.Headers.GetKey(i));
         var val = string.Copy(ctx.Request.Headers.Get(i));
-        Headers = TfresCommon.AddToDict(key, val, Headers);
+        Headers = AddToDict(key, val, Headers);
+      }
+
+      foreach (var curr in Headers)
+      {
+        if (string.IsNullOrEmpty(curr.Key)) continue;
+        if (string.IsNullOrEmpty(curr.Value)) continue;
+
+        if (curr.Key.ToLower().Equals("transfer-encoding"))
+        {
+          if (curr.Value.ToLower().Contains("chunked"))
+            ChunkedTransfer = true;
+          if (curr.Value.ToLower().Contains("gzip"))
+            Gzip = true;
+          if (curr.Value.ToLower().Contains("deflate"))
+            Deflate = true;
+        }
       }
 
       #endregion
 
-      #region Copy-Payload
+      #region Payload
 
-      if (contentLength > 0)
-        if (string.CompareOrdinal(Method.ToLower().Trim(), "get") != 0)
-          try
-          {
-            if (contentLength < 1)
-            {
-              PostDataAsByteArray = null;
-            }
-            else
-            {
-              PostDataAsByteArray = new byte[contentLength];
-              var bodyStream = ctx.Request.InputStream;
+      Data = ctx.Request.InputStream;
 
-              PostDataAsByteArray = TfresCommon.StreamToBytes(bodyStream);
-            }
-          }
-          catch (Exception)
-          {
-            PostDataAsByteArray = null;
-          }
+      #endregion
 
       #endregion
     }
 
-    #endregion
+    /// <summary>
+    ///   Instantiate the object using a generic stream.
+    /// </summary>
+    /// <param name="stream">Stream.</param>
+    /// <returns>HttpRequest.</returns>
+    public static HttpRequest FromStream(Stream stream)
+    {
+      if (stream == null) throw new ArgumentNullException(nameof(stream));
 
-    #region Public-Members
+      #region Variables
+
+      HttpRequest ret;
+      byte[] headerBytes = null;
+      var lastFourBytes = new byte[4];
+      lastFourBytes[0] = 0x00;
+      lastFourBytes[1] = 0x00;
+      lastFourBytes[2] = 0x00;
+      lastFourBytes[3] = 0x00;
+
+      #endregion
+
+      #region Check-Stream
+
+      if (!stream.CanRead) throw new IOException("Unable to read from stream.");
+
+      #endregion
+
+      #region Read-Headers
+
+      using (var headerMs = new MemoryStream())
+      {
+        #region Read-Header-Bytes
+
+        var headerBuffer = new byte[1];
+        var read = 0;
+        var headerBytesRead = 0;
+
+        while ((read = stream.Read(headerBuffer, 0, headerBuffer.Length)) > 0)
+          if (read > 0)
+          {
+            #region Initialize-Header-Bytes-if-Needed
+
+            headerBytesRead += read;
+            if (headerBytes == null) headerBytes = new byte[1];
+
+            #endregion
+
+            #region Update-Last-Four
+
+            if (read == 1)
+            {
+              lastFourBytes[0] = lastFourBytes[1];
+              lastFourBytes[1] = lastFourBytes[2];
+              lastFourBytes[2] = lastFourBytes[3];
+              lastFourBytes[3] = headerBuffer[0];
+            }
+
+            #endregion
+
+            #region Append-to-Header-Buffer
+
+            var tempHeader = new byte[headerBytes.Length + 1];
+            Buffer.BlockCopy(headerBytes, 0, tempHeader, 0, headerBytes.Length);
+            tempHeader[headerBytes.Length] = headerBuffer[0];
+            headerBytes = tempHeader;
+
+            #endregion
+
+            #region Check-for-End-of-Headers
+
+            if (lastFourBytes[0] == 13
+             && lastFourBytes[1] == 10
+             && lastFourBytes[2] == 13
+             && lastFourBytes[3] == 10)
+              break;
+
+            #endregion
+          }
+
+        #endregion
+      }
+
+      #endregion
+
+      #region Process-Headers
+
+      if (headerBytes == null || headerBytes.Length < 1) throw new IOException("No header data read from the stream.");
+      ret = BuildHeaders(headerBytes);
+
+      #endregion
+
+      #region Read-Data
+
+      ret.Data = null;
+      if (ret.ContentLength > 0)
+      {
+        #region Read-from-Stream
+
+        ret.Data = new MemoryStream();
+
+        var bytesRemaining = ret.ContentLength;
+        long bytesRead = 0;
+        var timeout = false;
+        var currentTimeout = 0;
+
+        var read = 0;
+        byte[] buffer;
+        long bufferSize = 2048;
+        if (bufferSize > bytesRemaining) bufferSize = bytesRemaining;
+        buffer = new byte[bufferSize];
+
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+          if (read > 0)
+          {
+            ret.Data.Write(buffer, 0, read);
+            bytesRead = bytesRead           + read;
+            bytesRemaining = bytesRemaining - read;
+
+            // reduce buffer size if number of bytes remaining is
+            // less than the pre-defined buffer size of 2KB
+            if (bytesRemaining < bufferSize) bufferSize = bytesRemaining;
+
+            buffer = new byte[bufferSize];
+
+            // check if read fully
+            if (bytesRemaining == 0) break;
+            if (bytesRead      == ret.ContentLength) break;
+          }
+          else
+          {
+            if (currentTimeout >= _TimeoutDataReadMs)
+            {
+              timeout = true;
+              break;
+            }
+
+            currentTimeout += _DataReadSleepMs;
+            Thread.Sleep(_DataReadSleepMs);
+          }
+
+        if (timeout) throw new IOException("Timeout reading data from stream.");
+
+        ret.Data.Seek(0, SeekOrigin.Begin);
+
+        #endregion
+      }
+
+      #endregion
+
+      return ret;
+    }
 
     /// <summary>
-    ///   UTC timestamp from when the request was received.
+    ///   Instantiate the object using a network stream.
     /// </summary>
-    public DateTime TimestampUtc { get; }
+    /// <param name="stream">NetworkStream.</param>
+    /// <returns>HttpRequest.</returns>
+    public static HttpRequest FromStream(NetworkStream stream)
+    {
+      if (stream == null) throw new ArgumentNullException(nameof(stream));
+
+      #region Variables
+
+      HttpRequest ret;
+      byte[] headerBytes = null;
+      var lastFourBytes = new byte[4];
+      lastFourBytes[0] = 0x00;
+      lastFourBytes[1] = 0x00;
+      lastFourBytes[2] = 0x00;
+      lastFourBytes[3] = 0x00;
+
+      #endregion
+
+      #region Check-Stream
+
+      if (!stream.CanRead) throw new IOException("Unable to read from stream.");
+
+      #endregion
+
+      #region Read-Headers
+
+      using (var headerMs = new MemoryStream())
+      {
+        #region Read-Header-Bytes
+
+        var headerBuffer = new byte[1];
+        var read = 0;
+        var headerBytesRead = 0;
+
+        while ((read = stream.Read(headerBuffer, 0, headerBuffer.Length)) > 0)
+          if (read > 0)
+          {
+            #region Initialize-Header-Bytes-if-Needed
+
+            headerBytesRead += read;
+            if (headerBytes == null) headerBytes = new byte[1];
+
+            #endregion
+
+            #region Update-Last-Four
+
+            if (read == 1)
+            {
+              lastFourBytes[0] = lastFourBytes[1];
+              lastFourBytes[1] = lastFourBytes[2];
+              lastFourBytes[2] = lastFourBytes[3];
+              lastFourBytes[3] = headerBuffer[0];
+            }
+
+            #endregion
+
+            #region Append-to-Header-Buffer
+
+            var tempHeader = new byte[headerBytes.Length + 1];
+            Buffer.BlockCopy(headerBytes, 0, tempHeader, 0, headerBytes.Length);
+            tempHeader[headerBytes.Length] = headerBuffer[0];
+            headerBytes = tempHeader;
+
+            #endregion
+
+            #region Check-for-End-of-Headers
+
+            if (lastFourBytes[0] == 13
+             && lastFourBytes[1] == 10
+             && lastFourBytes[2] == 13
+             && lastFourBytes[3] == 10)
+              break;
+
+            #endregion
+          }
+
+        #endregion
+      }
+
+      #endregion
+
+      #region Process-Headers
+
+      if (headerBytes == null || headerBytes.Length < 1) throw new IOException("No header data read from the stream.");
+      ret = BuildHeaders(headerBytes);
+
+      #endregion
+
+      #region Read-Data
+
+      ret.Data = null;
+      if (ret.ContentLength > 0)
+      {
+        #region Read-from-Stream
+
+        ret.Data = new MemoryStream();
+
+        var bytesRemaining = ret.ContentLength;
+        long bytesRead = 0;
+        var timeout = false;
+        var currentTimeout = 0;
+
+        var read = 0;
+        byte[] buffer;
+        long bufferSize = 2048;
+        if (bufferSize > bytesRemaining) bufferSize = bytesRemaining;
+        buffer = new byte[bufferSize];
+
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+          if (read > 0)
+          {
+            ret.Data.Write(buffer, 0, read);
+            bytesRead = bytesRead           + read;
+            bytesRemaining = bytesRemaining - read;
+
+            // reduce buffer size if number of bytes remaining is
+            // less than the pre-defined buffer size of 2KB
+            if (bytesRemaining < bufferSize) bufferSize = bytesRemaining;
+
+            buffer = new byte[bufferSize];
+
+            // check if read fully
+            if (bytesRemaining == 0) break;
+            if (bytesRead      == ret.ContentLength) break;
+          }
+          else
+          {
+            if (currentTimeout >= _TimeoutDataReadMs)
+            {
+              timeout = true;
+              break;
+            }
+
+            currentTimeout += _DataReadSleepMs;
+            Thread.Sleep(_DataReadSleepMs);
+          }
+
+        if (timeout) throw new IOException("Timeout reading data from stream.");
+
+        ret.Data.Seek(0, SeekOrigin.Begin);
+
+        #endregion
+      }
+
+      #endregion
+
+      return ret;
+    }
 
     /// <summary>
-    ///   The protocol and version.
+    ///   Instantiate the object using a TCP client.
     /// </summary>
-    private readonly string _protocolVersion;
+    /// <param name="client">TcpClient.</param>
+    /// <returns>HttpRequest.</returns>
+    public static HttpRequest FromTcpClient(TcpClient client)
+    {
+      if (client == null) throw new ArgumentNullException(nameof(client));
 
-    /// <summary>
-    ///   IP address of the requestor (client).
-    /// </summary>
-    public string SourceIp { get; }
+      #region Variables
 
-    /// <summary>
-    ///   TCP port from which the request originated on the requestor (client).
-    /// </summary>
-    public int SourcePort { get; }
+      HttpRequest ret;
+      byte[] headerBytes = null;
+      var lastFourBytes = new byte[4];
+      lastFourBytes[0] = 0x00;
+      lastFourBytes[1] = 0x00;
+      lastFourBytes[2] = 0x00;
+      lastFourBytes[3] = 0x00;
 
-    /// <summary>
-    ///   IP address of the recipient (server).
-    /// </summary>
-    public string DestIp { get; }
+      #endregion
 
-    /// <summary>
-    ///   TCP port on which the request was received by the recipient (server).
-    /// </summary>
-    public int DestPort { get; }
+      #region Attach-Stream
 
-    /// <summary>
-    ///   The destination hostname as found in the request line, if present.
-    /// </summary>
-    private readonly string _destHostname;
+      var stream = client.GetStream();
 
-    /// <summary>
-    ///   The destination host port as found in the request line, if present.
-    /// </summary>
-    private readonly int _destHostPort;
+      if (!stream.CanRead) throw new IOException("Unable to read from stream.");
 
-    /// <summary>
-    ///   Specifies whether or not the client requested HTTP keepalives.
-    /// </summary>
-    private readonly bool _keepalive;
+      #endregion
 
-    /// <summary>
-    ///   The HTTP verb used in the request.
-    /// </summary>
-    public string Method { get; }
+      #region Read-Headers
 
-    /// <summary>
-    ///   The full URL as sent by the requestor (client).
-    /// </summary>
-    private readonly string _fullUrl;
+      using (var headerMs = new MemoryStream())
+      {
+        #region Read-Header-Bytes
 
-    /// <summary>
-    ///   The raw (relative) URL without the querystring attached.
-    /// </summary>
-    public string RawUrlWithoutQuery { get; }
+        var headerBuffer = new byte[1];
+        var read = 0;
+        var headerBytesRead = 0;
 
-    /// <summary>
-    ///   The useragent specified in the request.
-    /// </summary>
-    private readonly string _useragent;
+        while ((read = stream.Read(headerBuffer, 0, headerBuffer.Length)) > 0)
+          if (read > 0)
+          {
+            #region Initialize-Header-Bytes-if-Needed
 
-    /// <summary>
-    ///   The content type as specified by the requestor (client).
-    /// </summary>
-    public string ContentType { get; }
+            headerBytesRead += read;
+            if (headerBytes == null) headerBytes = new byte[1];
 
-    /// <summary>
-    ///   The headers found in the request.
-    /// </summary>
-    public Dictionary<string, string> Headers { get; }
+            #endregion
 
-    #endregion
+            #region Update-Last-Four
 
-    #region Public-Internal-Classes
+            if (read == 1)
+            {
+              lastFourBytes[0] = lastFourBytes[1];
+              lastFourBytes[1] = lastFourBytes[2];
+              lastFourBytes[2] = lastFourBytes[3];
+              lastFourBytes[3] = headerBuffer[0];
+            }
 
-    #endregion
+            #endregion
 
-    #region Private-Internal-Classes
+            #region Append-to-Header-Buffer
 
-    #endregion
+            var tempHeader = new byte[headerBytes.Length + 1];
+            Buffer.BlockCopy(headerBytes, 0, tempHeader, 0, headerBytes.Length);
+            tempHeader[headerBytes.Length] = headerBuffer[0];
+            headerBytes = tempHeader;
+
+            #endregion
+
+            #region Check-for-End-of-Headers
+
+            if (lastFourBytes[0] == 13
+             && lastFourBytes[1] == 10
+             && lastFourBytes[2] == 13
+             && lastFourBytes[3] == 10)
+              break;
+
+            #endregion
+          }
+
+        #endregion
+      }
+
+      #endregion
+
+      #region Process-Headers
+
+      if (headerBytes == null || headerBytes.Length < 1) throw new IOException("No header data read from the stream.");
+      ret = BuildHeaders(headerBytes);
+
+      #endregion
+
+      #region Read-Data
+
+      ret.Data = null;
+      if (ret.ContentLength > 0)
+      {
+        #region Read-from-Stream
+
+        ret.Data = new MemoryStream();
+
+        var bytesRemaining = ret.ContentLength;
+        long bytesRead = 0;
+        var timeout = false;
+        var currentTimeout = 0;
+
+        var read = 0;
+        byte[] buffer;
+        long bufferSize = 2048;
+        if (bufferSize > bytesRemaining) bufferSize = bytesRemaining;
+        buffer = new byte[bufferSize];
+
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+          if (read > 0)
+          {
+            ret.Data.Write(buffer, 0, read);
+            bytesRead = bytesRead           + read;
+            bytesRemaining = bytesRemaining - read;
+
+            // reduce buffer size if number of bytes remaining is
+            // less than the pre-defined buffer size of 2KB
+            if (bytesRemaining < bufferSize) bufferSize = bytesRemaining;
+
+            buffer = new byte[bufferSize];
+
+            // check if read fully
+            if (bytesRemaining == 0) break;
+            if (bytesRead      == ret.ContentLength) break;
+          }
+          else
+          {
+            if (currentTimeout >= _TimeoutDataReadMs)
+            {
+              timeout = true;
+              break;
+            }
+
+            currentTimeout += _DataReadSleepMs;
+            Thread.Sleep(_DataReadSleepMs);
+          }
+
+        if (timeout) throw new IOException("Timeout reading data from stream.");
+
+        ret.Data.Seek(0, SeekOrigin.Begin);
+
+        #endregion
+      }
+
+      #endregion
+
+      return ret;
+    }
+
 
     #region Public-Methods
 
@@ -259,19 +898,17 @@ namespace Tfres
     public override string ToString()
     {
       var ret = "";
-      var contentLength = 0;
-      if (PostDataAsByteArray != null) contentLength = PostDataAsByteArray.Length;
 
       ret += "--- HTTP Request ---" + Environment.NewLine;
       ret += TimestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " " + SourceIp + ":" + SourcePort + " to " + DestIp + ":" +
              DestPort                                     + Environment.NewLine;
-      ret += "  " + Method + " " + RawUrlWithoutQuery + " " + _protocolVersion   + Environment.NewLine;
-      ret += "  Full URL    : " + _fullUrl                                       + Environment.NewLine;
+      ret += "  " + Method + " " + RawUrlWithoutQuery + " " + ProtocolVersion    + Environment.NewLine;
+      ret += "  Full URL    : " + FullUrl                                        + Environment.NewLine;
       ret += "  Raw URL     : " + RawUrlWithoutQuery                             + Environment.NewLine;
-      ret += "  Querystring : " + GetDataAsString                                + Environment.NewLine;
-      ret += "  Useragent   : " + _useragent + " (Keepalive " + _keepalive + ")" + Environment.NewLine;
-      ret += "  Content     : " + ContentType + " (" + contentLength + " bytes)" + Environment.NewLine;
-      ret += "  Destination : " + _destHostname + ":" + _destHostPort            + Environment.NewLine;
+      ret += "  Querystring : " + Querystring                                    + Environment.NewLine;
+      ret += "  Useragent   : " + Useragent + " (Keepalive " + Keepalive + ")"   + Environment.NewLine;
+      ret += "  Content     : " + ContentType + " (" + ContentLength + " bytes)" + Environment.NewLine;
+      ret += "  Destination : " + DestHostname + ":" + DestHostPort              + Environment.NewLine;
 
       if (Headers != null && Headers.Count > 0)
       {
@@ -283,17 +920,124 @@ namespace Tfres
         ret += "  Headers     : none" + Environment.NewLine;
       }
 
-      if (PostDataAsByteArray != null)
+      return ret;
+    }
+
+    /// <summary>
+    ///   Retrieve a specified header value from either the headers or the querystring (case insensitive).
+    /// </summary>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public string RetrieveHeaderValue(string key)
+    {
+      if (string.IsNullOrEmpty(key)) throw new ArgumentNullException(nameof(key));
+      if (Headers != null && Headers.Count > 0)
+        foreach (var curr in Headers)
+        {
+          if (string.IsNullOrEmpty(curr.Key)) continue;
+          if (string.Compare(curr.Key.ToLower(), key.ToLower()) == 0) return curr.Value;
+        }
+
+      if (QuerystringEntries != null && QuerystringEntries.Count > 0)
+        foreach (var curr in QuerystringEntries)
+        {
+          if (string.IsNullOrEmpty(curr.Key)) continue;
+          if (string.Compare(curr.Key.ToLower(), key.ToLower()) == 0) return curr.Value;
+        }
+
+      return null;
+    }
+
+    /// <summary>
+    ///   For chunked transfer-encoded requests, read the next chunk.
+    /// </summary>
+    /// <returns>Chunk.</returns>
+    public async Task<Chunk> ReadChunk()
+    {
+      if (!ChunkedTransfer) throw new IOException("Request is not chunk transfer-encoded.");
+
+      var chunk = new Chunk();
+
+      #region Get-Length-and-Metadata
+
+      var buffer = new byte[1];
+      byte[] lenBytes = null;
+      var bytesRead = 0;
+
+      while (true)
       {
-        ret += "  Data        : "                           + Environment.NewLine;
-        ret += Encoding.UTF8.GetString(PostDataAsByteArray) + Environment.NewLine;
+        bytesRead = await Data.ReadAsync(buffer, 0, buffer.Length);
+        if (bytesRead > 0)
+        {
+          lenBytes = AppendBytes(lenBytes, buffer);
+          var lenStr = Encoding.UTF8.GetString(lenBytes);
+
+          if (lenBytes[lenBytes.Length - 1] == 10)
+          {
+            lenStr = lenStr.Trim();
+
+            if (lenStr.Contains(";"))
+            {
+              var lenStrParts = lenStr.Split(new[] {';'}, 2);
+              lenStr = lenStrParts[0];
+
+              if (lenStrParts.Length == 2) chunk.Metadata = lenStrParts[1];
+            }
+            else
+            {
+              chunk.Length = int.Parse(lenStr, NumberStyles.HexNumber);
+            }
+
+            // Console.WriteLine("- Chunk length determined: " + chunk.Length); 
+            break;
+          }
+        }
+      }
+
+      #endregion
+
+      #region Get-Data
+
+      // Console.WriteLine("- Reading " + chunk.Length + " bytes");
+
+      if (chunk.Length > 0)
+      {
+        chunk.IsFinalChunk = false;
+        buffer = new byte[chunk.Length];
+        bytesRead = await Data.ReadAsync(buffer, 0, buffer.Length);
+        if (bytesRead == chunk.Length)
+        {
+          chunk.Data = new byte[chunk.Length];
+          Buffer.BlockCopy(buffer, 0, chunk.Data, 0, chunk.Length);
+          // Console.WriteLine("- Data: " + Encoding.UTF8.GetString(buffer));
+        }
+        else
+        {
+          throw new IOException("Expected " + chunk.Length + " bytes but only read " + bytesRead + " bytes in chunk.");
+        }
       }
       else
       {
-        ret += "  Data        : [null]" + Environment.NewLine;
+        chunk.IsFinalChunk = true;
       }
 
-      return ret;
+      #endregion
+
+      #region Get-Trailing-CRLF
+
+      buffer = new byte[1];
+
+      while (true)
+      {
+        bytesRead = await Data.ReadAsync(buffer, 0, buffer.Length);
+        if (bytesRead > 0)
+          if (buffer[0] == 10)
+            break;
+      }
+
+      #endregion
+
+      return chunk;
     }
 
     /// <summary>
@@ -302,15 +1046,19 @@ namespace Tfres
     /// <returns>Post-Data as T</returns>
     public T PostData<T>()
     {
-      return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(PostDataAsByteArray));
+      return JsonConvert.DeserializeObject<T>(PostDataAsString);
     }
 
-    /// <summary>
-    ///   The request body as sent by the requestor (client).
-    /// </summary>
-    public byte[] PostDataAsByteArray { get; }
-
-    public string PostDataAsString => Encoding.UTF8.GetString(PostDataAsByteArray);
+    public string PostDataAsString
+    {
+      get
+      {
+        using (var reader = new StreamReader(Data, Encoding.UTF8))
+        {
+          return reader.ReadToEnd();
+        }
+      }
+    }
 
     /// <summary>
     ///   Return Data send as GET-Parameter
@@ -323,12 +1071,12 @@ namespace Tfres
         if (string.IsNullOrEmpty(GetDataAsString))
           return new Dictionary<string, string>();
 
-        var split = GetDataAsString.Split(new[] {"&"}, StringSplitOptions.RemoveEmptyEntries);
+        var split = GetDataAsString.Split(new[] { "&" }, StringSplitOptions.RemoveEmptyEntries);
         var res = new Dictionary<string, string>();
         foreach (var x in split)
           try
           {
-            var entry = x.Split(new[] {"="}, StringSplitOptions.RemoveEmptyEntries);
+            var entry = x.Split(new[] { "=" }, StringSplitOptions.RemoveEmptyEntries);
             if (entry.Length != 2)
               continue;
 
@@ -357,7 +1105,297 @@ namespace Tfres
     /// <summary>
     ///   The querystring attached to the URL.
     /// </summary>
-    public string GetDataAsString { get; }
+    public string GetDataAsString => Querystring;
+
+    #endregion
+
+    #region Private-Methods
+
+    private static HttpRequest BuildHeaders(byte[] bytes)
+    {
+      if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+
+      #region Initial-Values
+
+      var ret = new HttpRequest();
+      ret.TimestampUtc = DateTime.Now.ToUniversalTime();
+      ret.ThreadId = Thread.CurrentThread.ManagedThreadId;
+      ret.SourceIp = "unknown";
+      ret.SourcePort = 0;
+      ret.DestIp = "unknown";
+      ret.DestPort = 0;
+      ret.Headers = new Dictionary<string, string>();
+
+      #endregion
+
+      #region Convert-to-String-List
+
+      var str = Encoding.UTF8.GetString(bytes);
+      var headers = str.Split(new[] {"\r\n", "\n"}, StringSplitOptions.RemoveEmptyEntries);
+
+      #endregion
+
+      #region Process-Each-Line
+
+      for (var i = 0; i < headers.Length; i++)
+        if (i == 0)
+        {
+          #region First-Line
+
+          var requestLine = headers[i].Trim().Trim('\0').Split(' ');
+          if (requestLine.Length < 3)
+            throw new
+              ArgumentException("Request line does not contain at least three parts (method, raw URL, protocol/version).");
+
+          ret.Method = (HttpVerb) Enum.Parse(typeof(HttpVerb), requestLine[0], true);
+          ret.FullUrl = requestLine[1];
+          ret.ProtocolVersion = requestLine[2];
+          ret.RawUrlWithQuery = ret.FullUrl;
+          ret.RawUrlWithoutQuery = ExtractRawUrlWithoutQuery(ret.RawUrlWithQuery);
+          ret.RawUrlEntries = ExtractRawUrlEntries(ret.RawUrlWithoutQuery);
+          ret.Querystring = ExtractQuerystring(ret.RawUrlWithQuery);
+          ret.QuerystringEntries = ExtractQuerystringEntries(ret.Querystring);
+
+          try
+          {
+            var uri = new Uri(ret.FullUrl);
+            ret.DestHostname = uri.Host;
+            ret.DestHostPort = uri.Port;
+          }
+          catch (Exception)
+          {
+          }
+
+          if (string.IsNullOrEmpty(ret.DestHostname))
+            if (!ret.FullUrl.Contains("://") & ret.FullUrl.Contains(":"))
+            {
+              var hostAndPort = ret.FullUrl.Split(':');
+              if (hostAndPort.Length == 2)
+              {
+                ret.DestHostname = hostAndPort[0];
+                if (!int.TryParse(hostAndPort[1], out ret.DestHostPort))
+                  throw new Exception("Unable to parse destination hostname and port.");
+              }
+            }
+
+          #endregion
+        }
+        else
+        {
+          #region Subsequent-Line
+
+          var headerLine = headers[i].Split(':');
+          if (headerLine.Length == 2)
+          {
+            var key = headerLine[0].Trim();
+            var val = headerLine[1].Trim();
+
+            if (string.IsNullOrEmpty(key)) continue;
+            var keyEval = key.ToLower();
+
+            if (keyEval.Equals("keep-alive"))
+            {
+              ret.Keepalive = Convert.ToBoolean(val);
+            }
+            else if (keyEval.Equals("user-agent"))
+            {
+              ret.Useragent = val;
+            }
+            else if (keyEval.Equals("content-length"))
+            {
+              ret.ContentLength = Convert.ToInt64(val);
+            }
+            else if (keyEval.Equals("content-type"))
+            {
+              ret.ContentType = val;
+            }
+            else if (keyEval.Equals("transfer-encoding"))
+            {
+              if (string.IsNullOrEmpty(val)) continue;
+              if (val.ToLower().Contains("chunked"))
+                ret.ChunkedTransfer = true;
+              if (val.ToLower().Contains("gzip"))
+                ret.Gzip = true;
+              if (val.ToLower().Contains("deflate"))
+                ret.Deflate = true;
+            }
+            else
+            {
+              ret.Headers = AddToDict(key, val, ret.Headers);
+            }
+          }
+
+          #endregion
+        }
+
+      #endregion
+
+      return ret;
+    }
+
+    private static string ExtractRawUrlWithoutQuery(string rawUrlWithQuery)
+    {
+      if (string.IsNullOrEmpty(rawUrlWithQuery)) return null;
+      if (!rawUrlWithQuery.Contains("?")) return rawUrlWithQuery;
+      return rawUrlWithQuery.Substring(0, rawUrlWithQuery.IndexOf("?"));
+    }
+
+    private static List<string> ExtractRawUrlEntries(string rawUrlWithoutQuery)
+    {
+      if (string.IsNullOrEmpty(rawUrlWithoutQuery)) return null;
+
+      var position = 0;
+      var tempString = "";
+      var ret = new List<string>();
+
+      foreach (var c in rawUrlWithoutQuery)
+      {
+        if (position                       == 0 &&
+            string.Compare(tempString, "") == 0 &&
+            c                              == '/')
+          // skip the first slash
+          continue;
+
+        if (c != '/' && c != '?') tempString += c;
+
+        if (c == '/' || c == '?')
+        {
+          if (!string.IsNullOrEmpty(tempString))
+            // add to raw URL entries list
+            ret.Add(tempString);
+
+          position++;
+          tempString = "";
+        }
+      }
+
+      if (!string.IsNullOrEmpty(tempString))
+        // add to raw URL entries list
+        ret.Add(tempString);
+
+      return ret;
+    }
+
+    private static string ExtractQuerystring(string rawUrlWithQuery)
+    {
+      if (string.IsNullOrEmpty(rawUrlWithQuery)) return null;
+      if (!rawUrlWithQuery.Contains("?")) return null;
+
+      var qsStartPos = rawUrlWithQuery.IndexOf("?");
+      if (qsStartPos >= rawUrlWithQuery.Length - 1) return null;
+      return rawUrlWithQuery.Substring(qsStartPos + 1);
+    }
+
+    private static Dictionary<string, string> ExtractQuerystringEntries(string query)
+    {
+      if (string.IsNullOrEmpty(query)) return null;
+
+      var ret = new Dictionary<string, string>();
+
+      var inKey = 1;
+      var inVal = 0;
+      var position = 0;
+      var tempKey = "";
+      var tempVal = "";
+
+      foreach (var c in query)
+      {
+        if (inKey == 1)
+        {
+          if (c != '=')
+          {
+            tempKey += c;
+          }
+          else
+          {
+            inKey = 0;
+            inVal = 1;
+            continue;
+          }
+        }
+
+        if (inVal == 1)
+        {
+          if (c != '&')
+          {
+            tempVal += c;
+          }
+          else
+          {
+            inKey = 1;
+            inVal = 0;
+
+            if (!string.IsNullOrEmpty(tempVal)) tempVal = WebUtility.UrlEncode(tempVal);
+            ret = AddToDict(tempKey, tempVal, ret);
+
+            tempKey = "";
+            tempVal = "";
+            position++;
+            continue;
+          }
+        }
+
+        if (inVal == 1)
+        {
+          if (!string.IsNullOrEmpty(tempVal)) tempVal = WebUtility.UrlEncode(tempVal);
+          ret = AddToDict(tempKey, tempVal, ret);
+        }
+      }
+
+      return ret;
+    }
+
+    private static Dictionary<string, string> AddToDict(string key, string val, Dictionary<string, string> existing)
+    {
+      if (string.IsNullOrEmpty(key)) return existing;
+
+      var ret = new Dictionary<string, string>();
+
+      if (existing == null)
+      {
+        ret.Add(key, val);
+        return ret;
+      }
+
+      if (existing.ContainsKey(key))
+      {
+        if (string.IsNullOrEmpty(val)) return existing;
+        var tempVal = existing[key];
+        tempVal += "," + val;
+        existing.Remove(key);
+        existing.Add(key, tempVal);
+        return existing;
+      }
+
+      existing.Add(key, val);
+      return existing;
+    }
+
+    private static byte[] AppendBytes(byte[] orig, byte[] append)
+    {
+      if (orig == null && append == null) return null;
+
+      byte[] ret = null;
+
+      if (append == null)
+      {
+        ret = new byte[orig.Length];
+        Buffer.BlockCopy(orig, 0, ret, 0, orig.Length);
+        return ret;
+      }
+
+      if (orig == null)
+      {
+        ret = new byte[append.Length];
+        Buffer.BlockCopy(append, 0, ret, 0, append.Length);
+        return ret;
+      }
+
+      ret = new byte[orig.Length + append.Length];
+      Buffer.BlockCopy(orig, 0, ret, 0, orig.Length);
+      Buffer.BlockCopy(append, 0, ret, orig.Length, append.Length);
+      return ret;
+    }
 
     #endregion
   }

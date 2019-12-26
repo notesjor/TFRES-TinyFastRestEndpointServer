@@ -3,40 +3,26 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 #endregion
 
 namespace Tfres
 {
-  internal class EndpointManager
+  /// <summary>
+  ///   Static route manager.  Static routes are used for requests using any HTTP method to a specific path.
+  /// </summary>
+  public class EndpointManager
   {
     #region Constructors-and-Factories
 
+    /// <summary>
+    ///   Instantiate the object.
+    /// </summary>
     public EndpointManager()
     {
-      _routes = new List<Endpoint>();
-      _routeLock = new object();
-    }
-
-    #endregion
-
-    #region Private-Methods
-
-    private void Add(Endpoint route)
-    {
-      if (route == null) throw new ArgumentNullException(nameof(route));
-
-      route.Verb = route.Verb;
-      route.Path = route.Path.ToLower();
-      if (!route.Path.StartsWith("/")) route.Path = "/"      + route.Path;
-      if (!route.Path.EndsWith("/")) route.Path = route.Path + "/";
-
-      if (Exists(route.Verb, route.Path)) return;
-
-      lock (_routeLock)
-      {
-        _routes.Add(route);
-      }
+      _Routes = new List<Endpoint>();
+      _Lock = new object();
     }
 
     #endregion
@@ -47,40 +33,53 @@ namespace Tfres
 
     #region Private-Members
 
-    private readonly List<Endpoint> _routes;
-    private readonly object _routeLock;
+    private readonly List<Endpoint> _Routes;
+    private readonly object _Lock;
 
     #endregion
 
     #region Public-Methods
 
-    public void Add(HttpVerb verb, string path, Func<HttpRequest, HttpResponse> handler)
+    /// <summary>
+    ///   Add a route.
+    /// </summary>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="path">URL path, i.e. /path/to/resource.</param>
+    /// <param name="handler">Method to invoke.</param>
+    public void Add(HttpVerb method, string path, Func<HttpContext, Task> handler)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-      var r = new Endpoint(verb, path, handler);
+      var r = new Endpoint(method, path, handler);
       Add(r);
     }
 
-    private bool Exists(HttpVerb verb, string path)
+    /// <summary>
+    ///   Remove a route.
+    /// </summary>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="path">URL path.</param>
+    public void Remove(HttpVerb method, string path)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
-      path = path.ToLower();
-      if (!path.StartsWith("/")) path = "/" + path;
-      if (!path.EndsWith("/")) path = path  + "/";
+      var r = Get(method, path);
+      if (r == null) return;
 
-      lock (_routeLock)
+      lock (_Lock)
       {
-        var curr = _routes.FirstOrDefault(i => i.Verb == verb && i.Path == path);
-        if (curr == null) return false;
+        _Routes.Remove(r);
       }
-
-      return true;
     }
 
-    public Func<HttpRequest, HttpResponse> Match(HttpVerb verb, string path)
+    /// <summary>
+    ///   Retrieve a static route.
+    /// </summary>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="path">URL path.</param>
+    /// <returns>Endpoint if the route exists, otherwise null.</returns>
+    public Endpoint Get(HttpVerb method, string path)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
@@ -88,9 +87,79 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_routeLock)
+      lock (_Lock)
       {
-        return _routes.FirstOrDefault(i => i.Verb == verb && i.Path == path)?.Handler;
+        return _Routes.FirstOrDefault(i => i.Method == method && i.Path == path);
+      }
+    }
+
+    /// <summary>
+    ///   Check if a static route exists.
+    /// </summary>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="path">URL path.</param>
+    /// <returns>True if exists.</returns>
+    public bool Exists(HttpVerb method, string path)
+    {
+      if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+
+      path = path.ToLower();
+      if (!path.StartsWith("/")) path = "/" + path;
+      if (!path.EndsWith("/")) path = path  + "/";
+
+      lock (_Lock)
+      {
+        return _Routes.FirstOrDefault(i => i.Method == method && i.Path == path) != null;
+      }
+    }
+
+    /// <summary>
+    ///   Match a request method and URL to a handler method.
+    /// </summary>
+    /// <param name="method">The HTTP method.</param>
+    /// <param name="path">URL path.</param>
+    /// <returns>Method to invoke.</returns>
+    public Func<HttpContext, Task> Match(HttpVerb method, string path)
+    {
+      if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
+
+      path = path.ToLower();
+      if (!path.StartsWith("/")) path = "/" + path;
+      if (!path.EndsWith("/")) path = path  + "/";
+
+      lock (_Lock)
+      {
+        return _Routes.FirstOrDefault(i => i.Method == method && i.Path == path)?.Handler;
+      }
+    }
+
+    #endregion
+
+    #region Private-Methods
+
+    private void Add(Endpoint route)
+    {
+      if (route == null) throw new ArgumentNullException(nameof(route));
+
+      route.Path = route.Path.ToLower();
+      if (!route.Path.StartsWith("/")) route.Path = "/"      + route.Path;
+      if (!route.Path.EndsWith("/")) route.Path = route.Path + "/";
+
+      if (Exists(route.Method, route.Path)) return;
+
+      lock (_Lock)
+      {
+        _Routes.Add(route);
+      }
+    }
+
+    private void Remove(Endpoint route)
+    {
+      if (route == null) throw new ArgumentNullException(nameof(route));
+
+      lock (_Lock)
+      {
+        _Routes.Remove(route);
       }
     }
 
