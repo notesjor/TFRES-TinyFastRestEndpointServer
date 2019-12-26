@@ -1,7 +1,11 @@
-﻿using System;
+﻿#region
+
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
+
+#endregion
 
 namespace Tfres
 {

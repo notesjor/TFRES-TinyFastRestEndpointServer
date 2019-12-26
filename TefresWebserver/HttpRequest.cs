@@ -1,9 +1,13 @@
-﻿using System;
+﻿#region
+
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Web;
 using Newtonsoft.Json;
+
+#endregion
 
 namespace Tfres
 {
@@ -90,7 +94,7 @@ namespace Tfres
 
         #region Populate-Querystring
 
-        _querystring = queryString.Length > 0 ? queryString : null;
+        GetDataAsString = queryString.Length > 0 ? queryString : null;
 
         #endregion
       }
@@ -139,19 +143,19 @@ namespace Tfres
           {
             if (contentLength < 1)
             {
-              _data = null;
+              PostDataAsByteArray = null;
             }
             else
             {
-              _data = new byte[contentLength];
+              PostDataAsByteArray = new byte[contentLength];
               var bodyStream = ctx.Request.InputStream;
 
-              _data = TfresCommon.StreamToBytes(bodyStream);
+              PostDataAsByteArray = TfresCommon.StreamToBytes(bodyStream);
             }
           }
           catch (Exception)
           {
-            _data = null;
+            PostDataAsByteArray = null;
           }
 
       #endregion
@@ -222,11 +226,6 @@ namespace Tfres
     public string RawUrlWithoutQuery { get; }
 
     /// <summary>
-    ///   The querystring attached to the URL.
-    /// </summary>
-    private readonly string _querystring;
-
-    /// <summary>
     ///   The useragent specified in the request.
     /// </summary>
     private readonly string _useragent;
@@ -240,11 +239,6 @@ namespace Tfres
     ///   The headers found in the request.
     /// </summary>
     public Dictionary<string, string> Headers { get; }
-
-    /// <summary>
-    ///   The request body as sent by the requestor (client).
-    /// </summary>
-    private readonly byte[] _data;
 
     #endregion
 
@@ -266,7 +260,7 @@ namespace Tfres
     {
       var ret = "";
       var contentLength = 0;
-      if (_data != null) contentLength = _data.Length;
+      if (PostDataAsByteArray != null) contentLength = PostDataAsByteArray.Length;
 
       ret += "--- HTTP Request ---" + Environment.NewLine;
       ret += TimestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " " + SourceIp + ":" + SourcePort + " to " + DestIp + ":" +
@@ -274,7 +268,7 @@ namespace Tfres
       ret += "  " + Method + " " + RawUrlWithoutQuery + " " + _protocolVersion   + Environment.NewLine;
       ret += "  Full URL    : " + _fullUrl                                       + Environment.NewLine;
       ret += "  Raw URL     : " + RawUrlWithoutQuery                             + Environment.NewLine;
-      ret += "  Querystring : " + _querystring                                   + Environment.NewLine;
+      ret += "  Querystring : " + GetDataAsString                                + Environment.NewLine;
       ret += "  Useragent   : " + _useragent + " (Keepalive " + _keepalive + ")" + Environment.NewLine;
       ret += "  Content     : " + ContentType + " (" + contentLength + " bytes)" + Environment.NewLine;
       ret += "  Destination : " + _destHostname + ":" + _destHostPort            + Environment.NewLine;
@@ -289,10 +283,10 @@ namespace Tfres
         ret += "  Headers     : none" + Environment.NewLine;
       }
 
-      if (_data != null)
+      if (PostDataAsByteArray != null)
       {
-        ret += "  Data        : "             + Environment.NewLine;
-        ret += Encoding.UTF8.GetString(_data) + Environment.NewLine;
+        ret += "  Data        : "                           + Environment.NewLine;
+        ret += Encoding.UTF8.GetString(PostDataAsByteArray) + Environment.NewLine;
       }
       else
       {
@@ -308,12 +302,15 @@ namespace Tfres
     /// <returns>Post-Data as T</returns>
     public T PostData<T>()
     {
-      return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(_data));
+      return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(PostDataAsByteArray));
     }
 
-    public byte[] PostDataAsByteArray => _data;
+    /// <summary>
+    ///   The request body as sent by the requestor (client).
+    /// </summary>
+    public byte[] PostDataAsByteArray { get; }
 
-    public string PostDataAsString => Encoding.UTF8.GetString(_data);
+    public string PostDataAsString => Encoding.UTF8.GetString(PostDataAsByteArray);
 
     /// <summary>
     ///   Return Data send as GET-Parameter
@@ -323,10 +320,10 @@ namespace Tfres
     {
       try
       {
-        if (string.IsNullOrEmpty(_querystring))
+        if (string.IsNullOrEmpty(GetDataAsString))
           return new Dictionary<string, string>();
 
-        var split = _querystring.Split(new[] {"&"}, StringSplitOptions.RemoveEmptyEntries);
+        var split = GetDataAsString.Split(new[] {"&"}, StringSplitOptions.RemoveEmptyEntries);
         var res = new Dictionary<string, string>();
         foreach (var x in split)
           try
@@ -357,7 +354,10 @@ namespace Tfres
       }
     }
 
-    public string GetDataAsString => _querystring;
+    /// <summary>
+    ///   The querystring attached to the URL.
+    /// </summary>
+    public string GetDataAsString { get; }
 
     #endregion
   }

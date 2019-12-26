@@ -1,7 +1,11 @@
-﻿using System;
+﻿#region
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
+
+#endregion
 
 namespace Tfres
 {
@@ -158,7 +162,10 @@ namespace Tfres
     /// <param name="status">The HTTP status code to return to the requestor (client).</param>
     /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.</param>
     // ReSharper disable once UnusedMember.Global
-    public HttpResponse(HttpRequest req, bool success, int status, object data) : this(req, success, status, null, "application/json", JsonConvert.SerializeObject(data))
+    public HttpResponse(HttpRequest req, bool success, int status, object data) : this(req, success, status, null,
+                                                                                       "application/json",
+                                                                                       JsonConvert
+                                                                                        .SerializeObject(data))
     {
     }
 
@@ -170,7 +177,8 @@ namespace Tfres
     /// <param name="status">The HTTP status code to return to the requestor (client).</param>
     /// <param name="data">The data to return to the requestor in the response body.  This must be either a byte[] or string.</param>
     // ReSharper disable once UnusedMember.Global
-    public HttpResponse(HttpRequest req, bool success, int status, string message) : this(req, success, status, null, "text/plain", message)
+    public HttpResponse(HttpRequest req, bool success, int status, string message) : this(req, success, status, null,
+                                                                                          "text/plain", message)
     {
     }
 
