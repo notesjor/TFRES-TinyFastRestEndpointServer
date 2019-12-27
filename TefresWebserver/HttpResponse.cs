@@ -25,11 +25,6 @@ namespace Tfres
     public int StatusCode = 200;
 
     /// <summary>
-    ///   The HTTP status description to return to the requestor (client).
-    /// </summary>
-    public string StatusDescription = "OK";
-
-    /// <summary>
     ///   User-supplied headers to include in the response.
     /// </summary>
     public Dictionary<string, string> Headers = new Dictionary<string, string>();
@@ -37,7 +32,7 @@ namespace Tfres
     /// <summary>
     ///   User-supplied content-type to include in the response.
     /// </summary>
-    public string ContentType = string.Empty;
+    public string ContentType = "application/json";
 
     /// <summary>
     ///   The length of the supplied response data.
@@ -98,7 +93,7 @@ namespace Tfres
 
       ret += "--- HTTP Response ---"                              + Environment.NewLine;
       ret += "  Status Code        : " + StatusCode               + Environment.NewLine;
-      ret += "  Status Description : " + StatusDescription        + Environment.NewLine;
+      ret += "  Status Description : " + GetStatusDescription(StatusCode)        + Environment.NewLine;
       ret += "  Content            : " + ContentType              + Environment.NewLine;
       ret += "  Content Length     : " + ContentLength + " bytes" + Environment.NewLine;
       ret += "  Chunked Transfer   : " + ChunkedTransfer          + Environment.NewLine;
@@ -116,6 +111,40 @@ namespace Tfres
     }
 
     /// <summary>
+    /// Send headers (statusCode) and no data to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="statusCode">StatusCode</param>
+    /// <returns>True if successful.</returns>
+    public Task<bool> Send(int statusCode)
+    {
+      StatusCode = statusCode;
+      return Send();
+    }
+
+    /// <summary>
+    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="statusCode">StatusCode</param>
+    /// <param name="errorMessage">Plaintext error message</param>
+    /// <returns>True if successful.</returns>
+    public Task<bool> Send(int statusCode, string errorMessage)
+    {
+      StatusCode = statusCode;
+      ContentType = "text/plain";
+      return Send(errorMessage);
+    }
+
+    /// <summary>
+    ///   Send headers and data to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="obj">Object.</param>
+    /// <returns>True if successful.</returns>
+    public Task<bool> Send(object obj)
+    {
+      return Send(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj)));
+    }
+
+    /// <summary>
     ///   Send headers and no data to the requestor and terminate the connection.
     /// </summary>
     /// <returns>True if successful.</returns>
@@ -129,7 +158,7 @@ namespace Tfres
       await _OutputStream.FlushAsync();
       _OutputStream.Close();
 
-      if (_Response != null) _Response.Close();
+      _Response?.Close();
       return true;
     }
 
@@ -151,6 +180,18 @@ namespace Tfres
 
       if (_Response != null) _Response.Close();
       return true;
+    }
+
+    /// <summary>
+    ///   Send headers and data to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="mimeType">Force a special MIME-Type</param>
+    /// <param name="data">Data.</param>
+    /// <returns>True if successful.</returns>
+    public Task<bool> Send(string mimeType, string data)
+    {
+      ContentType = mimeType;
+      return Send(data);
     }
 
     /// <summary>

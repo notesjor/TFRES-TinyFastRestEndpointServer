@@ -208,11 +208,11 @@ namespace Tfres
                 handler = _endpoints.Match(ctx.Request.Method, ctx.Request.RawUrlWithoutQuery);
                 if (handler != null)
                 {
-                  handler(ctx).RunSynchronously();
+                  handler(ctx).Wait(token);
                   return;
                 }
 
-                _DefaultRoute(ctx).RunSynchronously();
+                _DefaultRoute(ctx).Wait(token);
               });
 
               #endregion
