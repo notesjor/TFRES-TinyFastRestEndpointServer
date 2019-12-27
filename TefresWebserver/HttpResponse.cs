@@ -22,39 +22,38 @@ namespace Tfres
     /// <summary>
     ///   The HTTP status code to return to the requestor (client).
     /// </summary>
-    public int StatusCode = 200;
+    public int StatusCode { get; set; } = 200;
 
     /// <summary>
     ///   User-supplied headers to include in the response.
     /// </summary>
-    public Dictionary<string, string> Headers = new Dictionary<string, string>();
+    public Dictionary<string, string> Headers { get; set; } = new Dictionary<string, string>();
 
     /// <summary>
     ///   User-supplied content-type to include in the response.
     /// </summary>
-    public string ContentType = "application/json";
+    public string ContentType { get; set; } = "application/json";
 
     /// <summary>
     ///   The length of the supplied response data.
     /// </summary>
-    public long ContentLength;
+    public long ContentLength { get; set; }
 
     /// <summary>
     ///   Indicates whether or not chunked transfer encoding should be indicated in the response.
     /// </summary>
-    public bool ChunkedTransfer = false;
+    public bool ChunkedTransfer { get; set; } = false;
 
     #endregion
 
     #region Private-Members
 
-    private readonly int _StreamBufferSize = 65536;
+    private readonly int _streamBufferSize = 65536;
 
-    private readonly HttpRequest _Request;
-    private readonly HttpListenerContext _Context;
-    private readonly HttpListenerResponse _Response;
-    private readonly Stream _OutputStream;
-    private bool _HeadersSent;
+    private readonly HttpRequest _request;
+    private readonly HttpListenerResponse _response;
+    private readonly Stream _outputStream;
+    private bool _headersSent;
 
     #endregion
 
@@ -69,14 +68,10 @@ namespace Tfres
     
     internal HttpResponse(HttpRequest req, HttpListenerContext ctx, int bufferSize)
     {
-      if (req == null) throw new ArgumentNullException(nameof(req));
-      if (ctx == null) throw new ArgumentNullException(nameof(ctx));
-
-      _Request = req;
-      _Context = ctx;
-      _Response = _Context.Response;
-      _StreamBufferSize = bufferSize;
-      _OutputStream = _Response.OutputStream;
+      _request = req ?? throw new ArgumentNullException(nameof(req));
+      _response = ctx?.Response ?? throw new ArgumentNullException(nameof(ctx));
+      _streamBufferSize = bufferSize;
+      _outputStream = _response.OutputStream;
     }
 
     #endregion
@@ -153,12 +148,12 @@ namespace Tfres
       if (ChunkedTransfer)
         throw new
           IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
-      if (!_HeadersSent) SendHeaders();
+      if (!_headersSent) SendHeaders();
 
-      await _OutputStream.FlushAsync();
-      _OutputStream.Close();
+      await _outputStream.FlushAsync();
+      _outputStream.Close();
 
-      _Response?.Close();
+      _response?.Close();
       return true;
     }
 
@@ -173,12 +168,12 @@ namespace Tfres
         throw new
           IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
       ContentLength = contentLength;
-      if (!_HeadersSent) SendHeaders();
+      if (!_headersSent) SendHeaders();
 
-      await _OutputStream.FlushAsync();
-      _OutputStream.Close();
+      await _outputStream.FlushAsync();
+      _outputStream.Close();
 
-      if (_Response != null) _Response.Close();
+      _response?.Close();
       return true;
     }
 
@@ -204,24 +199,24 @@ namespace Tfres
       if (ChunkedTransfer)
         throw new
           IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
-      if (!_HeadersSent) SendHeaders();
+      if (!_headersSent) SendHeaders();
 
       byte[] bytes = null;
       if (!string.IsNullOrEmpty(data))
       {
         bytes = Encoding.UTF8.GetBytes(data);
-        _Response.ContentLength64 = bytes.Length;
+        _response.ContentLength64 = bytes.Length;
       }
       else
       {
-        _Response.ContentLength64 = 0;
+        _response.ContentLength64 = 0;
       }
 
       try
       {
-        if (_Request.Method != HttpVerb.HEAD)
+        if (_request.Verb != HttpVerb.HEAD)
           if (bytes != null && bytes.Length > 0)
-            await _OutputStream.WriteAsync(bytes, 0, bytes.Length);
+            await _outputStream.WriteAsync(bytes, 0, bytes.Length);
       }
       catch
       {
@@ -230,10 +225,10 @@ namespace Tfres
       }
       finally
       {
-        await _OutputStream.FlushAsync();
-        _OutputStream.Close();
+        await _outputStream.FlushAsync();
+        _outputStream.Close();
 
-        if (_Response != null) _Response.Close();
+        _response?.Close();
       }
 
       return true;
@@ -249,16 +244,16 @@ namespace Tfres
       if (ChunkedTransfer)
         throw new
           IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
-      if (!_HeadersSent) SendHeaders();
+      if (!_headersSent) SendHeaders();
 
-      if (data != null && data.Length > 0) _Response.ContentLength64 = data.Length;
-      else _Response.ContentLength64 = 0;
+      if (data != null && data.Length > 0) _response.ContentLength64 = data.Length;
+      else _response.ContentLength64 = 0;
 
       try
       {
-        if (_Request.Method != HttpVerb.HEAD)
+        if (_request.Verb != HttpVerb.HEAD)
           if (data != null && data.Length > 0)
-            await _OutputStream.WriteAsync(data, 0, (int) _Response.ContentLength64);
+            await _outputStream.WriteAsync(data, 0, (int) _response.ContentLength64);
       }
       catch
       {
@@ -267,10 +262,10 @@ namespace Tfres
       }
       finally
       {
-        await _OutputStream.FlushAsync();
-        _OutputStream.Close();
+        await _outputStream.FlushAsync();
+        _outputStream.Close();
 
-        if (_Response != null) _Response.Close();
+        _response?.Close();
       }
 
       return true;
@@ -288,23 +283,22 @@ namespace Tfres
         throw new
           IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
       ContentLength = contentLength;
-      if (!_HeadersSent) SendHeaders();
+      if (!_headersSent) SendHeaders();
 
       try
       {
-        if (_Request.Method != HttpVerb.HEAD)
+        if (_request.Verb != HttpVerb.HEAD)
           if (stream != null && stream.CanRead && contentLength > 0)
           {
             var bytesRemaining = contentLength;
 
             while (bytesRemaining > 0)
             {
-              var bytesRead = 0;
-              var buffer = new byte[_StreamBufferSize];
-              bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+              var buffer = new byte[_streamBufferSize];
+              var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
               if (bytesRead > 0)
               {
-                await _OutputStream.WriteAsync(buffer, 0, bytesRead);
+                await _outputStream.WriteAsync(buffer, 0, bytesRead);
                 bytesRemaining -= bytesRead;
               }
             }
@@ -320,10 +314,10 @@ namespace Tfres
       }
       finally
       {
-        await _OutputStream.FlushAsync();
-        _OutputStream.Close();
+        await _outputStream.FlushAsync();
+        _outputStream.Close();
 
-        if (_Response != null) _Response.Close();
+        _response?.Close();
       }
 
       return true;
@@ -340,7 +334,7 @@ namespace Tfres
       if (!ChunkedTransfer)
         throw new
           IOException("Response is not configured to use chunked transfer-encoding.  Set ChunkedTransfer to true first, otherwise use Send().");
-      if (!_HeadersSent) SendHeaders();
+      if (!_headersSent) SendHeaders();
 
       try
       {
@@ -348,7 +342,7 @@ namespace Tfres
 
         // byte[] packagedChunk = PackageChunk(chunk);
         // await _OutputStream.WriteAsync(packagedChunk, 0, packagedChunk.Length);
-        await _OutputStream.WriteAsync(chunk, 0, chunk.Length);
+        await _outputStream.WriteAsync(chunk, 0, chunk.Length);
       }
       catch
       {
@@ -357,7 +351,7 @@ namespace Tfres
       }
       finally
       {
-        await _OutputStream.FlushAsync();
+        await _outputStream.FlushAsync();
         // do not close or dispose
       }
 
@@ -375,14 +369,14 @@ namespace Tfres
       if (!ChunkedTransfer)
         throw new
           IOException("Response is not configured to use chunked transfer-encoding.  Set ChunkedTransfer to true first, otherwise use Send().");
-      if (!_HeadersSent) SendHeaders();
+      if (!_headersSent) SendHeaders();
 
       try
       {
-        if (chunk != null && chunk.Length > 0) await _OutputStream.WriteAsync(chunk, 0, chunk.Length);
+        if (chunk != null && chunk.Length > 0) await _outputStream.WriteAsync(chunk, 0, chunk.Length);
 
         var endChunk = new byte[0];
-        await _OutputStream.WriteAsync(endChunk, 0, endChunk.Length);
+        await _outputStream.WriteAsync(endChunk, 0, endChunk.Length);
       }
       catch
       {
@@ -391,10 +385,10 @@ namespace Tfres
       }
       finally
       {
-        await _OutputStream.FlushAsync();
-        _OutputStream.Close();
+        await _outputStream.FlushAsync();
+        _outputStream.Close();
 
-        if (_Response != null) _Response.Close();
+        _response?.Close();
       }
 
       return true;
@@ -406,23 +400,23 @@ namespace Tfres
 
     private void SendHeaders()
     {
-      if (_HeadersSent) throw new IOException("Headers already sent.");
+      if (_headersSent) throw new IOException("Headers already sent.");
 
-      _Response.ContentLength64 = ContentLength;
-      _Response.StatusCode = StatusCode;
-      _Response.StatusDescription = GetStatusDescription(StatusCode);
-      _Response.SendChunked = ChunkedTransfer;
-      _Response.AddHeader("Access-Control-Allow-Origin", "*");
-      _Response.ContentType = ContentType;
+      _response.ContentLength64 = ContentLength;
+      _response.StatusCode = StatusCode;
+      _response.StatusDescription = GetStatusDescription(StatusCode);
+      _response.SendChunked = ChunkedTransfer;
+      _response.AddHeader("Access-Control-Allow-Origin", "*");
+      _response.ContentType = ContentType;
 
       if (Headers != null && Headers.Count > 0)
         foreach (var curr in Headers)
         {
           if (string.IsNullOrEmpty(curr.Key)) continue;
-          _Response.AddHeader(curr.Key, curr.Value);
+          _response.AddHeader(curr.Key, curr.Value);
         }
 
-      _HeadersSent = true;
+      _headersSent = true;
     }
 
     private string GetStatusDescription(int statusCode)

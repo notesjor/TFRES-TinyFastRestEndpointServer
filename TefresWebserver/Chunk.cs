@@ -8,22 +8,22 @@
     /// <summary>
     ///   Data.
     /// </summary>
-    public byte[] Data = null;
+    public byte[] Data { get; set; } = null;
 
     /// <summary>
     ///   Indicates whether or not this is the final chunk, i.e. the chunk length received was zero.
     /// </summary>
-    public bool IsFinalChunk = false;
+    public bool IsFinalChunk { get; set; } = false;
 
     /// <summary>
     ///   Length of the data.
     /// </summary>
-    public int Length = 0;
+    public int Length { get; set; }
 
     /// <summary>
     ///   Any additional metadata that appears on the length line after the length hex value and semicolon.
     /// </summary>
-    public string Metadata = null;
+    public string Metadata { get; set; } = null;
 
     internal Chunk()
     {

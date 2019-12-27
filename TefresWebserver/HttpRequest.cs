@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -26,42 +27,42 @@ namespace Tfres
     /// <summary>
     ///   UTC timestamp from when the request was received.
     /// </summary>
-    public DateTime TimestampUtc;
+    public DateTime TimestampUtc { get; set; }
 
     /// <summary>
     ///   Thread ID on which the request exists.
     /// </summary>
-    public int ThreadId;
+    public int ThreadId { get; set; }
 
     /// <summary>
     ///   The protocol and version.
     /// </summary>
-    public string ProtocolVersion;
+    public string ProtocolVersion { get; set; }
 
     /// <summary>
     ///   IP address of the requestor (client).
     /// </summary>
-    public string SourceIp;
+    public string SourceIp { get; set; }
 
     /// <summary>
     ///   TCP port from which the request originated on the requestor (client).
     /// </summary>
-    public int SourcePort;
+    public int SourcePort { get; set; }
 
     /// <summary>
     ///   IP address of the recipient (server).
     /// </summary>
-    public string DestIp;
+    public string DestIp { get; set; }
 
     /// <summary>
     ///   TCP port on which the request was received by the recipient (server).
     /// </summary>
-    public int DestPort;
+    public int DestPort { get; set; }
 
     /// <summary>
     ///   The destination hostname as found in the request line, if present.
     /// </summary>
-    public string DestHostname;
+    public string DestHostname { get; set; }
 
     /// <summary>
     ///   The destination host port as found in the request line, if present.
@@ -71,95 +72,94 @@ namespace Tfres
     /// <summary>
     ///   Specifies whether or not the client requested HTTP keepalives.
     /// </summary>
-    public bool Keepalive;
+    public bool Keepalive { get; set; }
 
     /// <summary>
     ///   The HTTP method used in the request.
     /// </summary>
-    public HttpVerb Method;
+    public HttpVerb Verb { get; set; }
 
     /// <summary>
     ///   Indicates whether or not chunked transfer encoding was detected.
     /// </summary>
-    public bool ChunkedTransfer;
+    public bool ChunkedTransfer { get; set; }
 
     /// <summary>
     ///   Indicates whether or not the payload has been gzip compressed.
     /// </summary>
-    public bool Gzip;
+    public bool Gzip { get; set; }
 
     /// <summary>
     ///   Indicates whether or not the payload has been deflate compressed.
     /// </summary>
-    public bool Deflate;
+    public bool Deflate { get; set; }
 
     /// <summary>
     ///   The full URL as sent by the requestor (client).
     /// </summary>
-    public string FullUrl;
+    public string FullUrl { get; set; }
 
     /// <summary>
     ///   The raw (relative) URL with the querystring attached.
     /// </summary>
-    public string RawUrlWithQuery;
+    public string RawUrlWithQuery { get; set; }
 
     /// <summary>
     ///   The raw (relative) URL without the querystring attached.
     /// </summary>
-    public string RawUrlWithoutQuery;
+    public string RawUrlWithoutQuery { get; set; }
 
     /// <summary>
     ///   List of items found in the raw URL.
     /// </summary>
-    public List<string> RawUrlEntries;
+    public List<string> RawUrlEntries { get; set; }
 
     /// <summary>
     ///   The querystring attached to the URL.
     /// </summary>
-    public string Querystring;
+    public string Querystring { get; set; }
 
     /// <summary>
     ///   Dictionary containing key-value pairs from items found in the querystring.
     /// </summary>
-    public Dictionary<string, string> QuerystringEntries;
+    public Dictionary<string, string> QuerystringEntries { get; set; }
 
     /// <summary>
     ///   The useragent specified in the request.
     /// </summary>
-    public string Useragent;
+    public string Useragent { get; set; }
 
     /// <summary>
     ///   The number of bytes in the request body.
     /// </summary>
-    public long ContentLength;
+    public long ContentLength { get; set; }
 
     /// <summary>
     ///   The content type as specified by the requestor (client).
     /// </summary>
-    public string ContentType;
+    public string ContentType { get; set; }
 
     /// <summary>
     ///   The headers found in the request.
     /// </summary>
-    public Dictionary<string, string> Headers;
+    public Dictionary<string, string> Headers { get; set; }
 
     /// <summary>
     ///   The stream from which to read the request body sent by the requestor (client).
     /// </summary>
-    [JsonIgnore] public Stream Data;
+    [JsonIgnore] public Stream Data { get; set; }
 
     /// <summary>
     ///   The original HttpListenerContext from which the HttpRequest was constructed.
     /// </summary>
-    [JsonIgnore] public HttpListenerContext ListenerContext;
+    [JsonIgnore] public HttpListenerContext ListenerContext { get; set; }
 
     #endregion
 
     #region Private-Members
 
-    private readonly Uri _Uri;
-    private static readonly int _TimeoutDataReadMs = 2000;
-    private static readonly int _DataReadSleepMs = 10;
+    private static readonly int _timeoutDataReadMs = 2000;
+    private static readonly int _dataReadSleepMs = 10;
 
     #endregion
 
@@ -196,11 +196,6 @@ namespace Tfres
       var tempString = "";
       var queryString = "";
 
-      var inKey = 0;
-      var inVal = 0;
-      var tempKey = "";
-      var tempVal = "";
-
       #endregion
 
       #region Standard-Request-Items
@@ -212,7 +207,7 @@ namespace Tfres
       SourcePort = ctx.Request.RemoteEndPoint.Port;
       DestIp = ctx.Request.LocalEndPoint.Address.ToString();
       DestPort = ctx.Request.LocalEndPoint.Port;
-      Method = (HttpVerb) Enum.Parse(typeof(HttpVerb), ctx.Request.HttpMethod, true);
+      Verb = (HttpVerb) Enum.Parse(typeof(HttpVerb), ctx.Request.HttpMethod, true);
       FullUrl = string.Copy(ctx.Request.Url.ToString().Trim());
       RawUrlWithQuery = string.Copy(ctx.Request.RawUrl.Trim());
       RawUrlWithoutQuery = string.Copy(ctx.Request.RawUrl.Trim());
@@ -280,8 +275,7 @@ namespace Tfres
 
         #region Populate-Querystring
 
-        if (queryString.Length > 0) Querystring = queryString;
-        else Querystring = null;
+        Querystring = queryString.Length > 0 ? queryString : null;
 
         #endregion
 
@@ -289,11 +283,11 @@ namespace Tfres
 
         if (!string.IsNullOrEmpty(Querystring))
         {
-          inKey = 1;
-          inVal = 0;
+          var inKey = 1;
+          var inVal = 0;
           position = 0;
-          tempKey = "";
-          tempVal = "";
+          var tempKey = "";
+          var tempVal = "";
 
           foreach (var c in Querystring)
           {
@@ -383,12 +377,13 @@ namespace Tfres
 
       try
       {
-        _Uri = new Uri(FullUrl);
-        DestHostname = _Uri.Host;
-        DestHostPort = _Uri.Port;
+        var uri = new Uri(FullUrl);
+        DestHostname = uri.Host;
+        DestHostPort = uri.Port;
       }
-      catch (Exception)
+      catch
       {
+        // ignore
       }
 
       #endregion
@@ -441,7 +436,6 @@ namespace Tfres
 
       #region Variables
 
-      HttpRequest ret;
       byte[] headerBytes = null;
       var lastFourBytes = new byte[4];
       lastFourBytes[0] = 0x00;
@@ -464,7 +458,7 @@ namespace Tfres
         #region Read-Header-Bytes
 
         var headerBuffer = new byte[1];
-        var read = 0;
+        int read;
         var headerBytesRead = 0;
 
         while ((read = stream.Read(headerBuffer, 0, headerBuffer.Length)) > 0)
@@ -517,7 +511,7 @@ namespace Tfres
       #region Process-Headers
 
       if (headerBytes == null || headerBytes.Length < 1) throw new IOException("No header data read from the stream.");
-      ret = BuildHeaders(headerBytes);
+      var ret = BuildHeaders(headerBytes);
 
       #endregion
 
@@ -535,11 +529,10 @@ namespace Tfres
         var timeout = false;
         var currentTimeout = 0;
 
-        var read = 0;
-        byte[] buffer;
+        int read;
         long bufferSize = 2048;
         if (bufferSize > bytesRemaining) bufferSize = bytesRemaining;
-        buffer = new byte[bufferSize];
+        var buffer = new byte[bufferSize];
 
         while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
           if (read > 0)
@@ -560,14 +553,14 @@ namespace Tfres
           }
           else
           {
-            if (currentTimeout >= _TimeoutDataReadMs)
+            if (currentTimeout >= _timeoutDataReadMs)
             {
               timeout = true;
               break;
             }
 
-            currentTimeout += _DataReadSleepMs;
-            Thread.Sleep(_DataReadSleepMs);
+            currentTimeout += _dataReadSleepMs;
+            Thread.Sleep(_dataReadSleepMs);
           }
 
         if (timeout) throw new IOException("Timeout reading data from stream.");
@@ -593,7 +586,6 @@ namespace Tfres
 
       #region Variables
 
-      HttpRequest ret;
       byte[] headerBytes = null;
       var lastFourBytes = new byte[4];
       lastFourBytes[0] = 0x00;
@@ -616,7 +608,7 @@ namespace Tfres
         #region Read-Header-Bytes
 
         var headerBuffer = new byte[1];
-        var read = 0;
+        int read;
         var headerBytesRead = 0;
 
         while ((read = stream.Read(headerBuffer, 0, headerBuffer.Length)) > 0)
@@ -669,7 +661,7 @@ namespace Tfres
       #region Process-Headers
 
       if (headerBytes == null || headerBytes.Length < 1) throw new IOException("No header data read from the stream.");
-      ret = BuildHeaders(headerBytes);
+      var ret = BuildHeaders(headerBytes);
 
       #endregion
 
@@ -687,11 +679,10 @@ namespace Tfres
         var timeout = false;
         var currentTimeout = 0;
 
-        var read = 0;
-        byte[] buffer;
+        int read;
         long bufferSize = 2048;
         if (bufferSize > bytesRemaining) bufferSize = bytesRemaining;
-        buffer = new byte[bufferSize];
+        var buffer = new byte[bufferSize];
 
         while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
           if (read > 0)
@@ -712,14 +703,14 @@ namespace Tfres
           }
           else
           {
-            if (currentTimeout >= _TimeoutDataReadMs)
+            if (currentTimeout >= _timeoutDataReadMs)
             {
               timeout = true;
               break;
             }
 
-            currentTimeout += _DataReadSleepMs;
-            Thread.Sleep(_DataReadSleepMs);
+            currentTimeout += _dataReadSleepMs;
+            Thread.Sleep(_dataReadSleepMs);
           }
 
         if (timeout) throw new IOException("Timeout reading data from stream.");
@@ -745,7 +736,6 @@ namespace Tfres
 
       #region Variables
 
-      HttpRequest ret;
       byte[] headerBytes = null;
       var lastFourBytes = new byte[4];
       lastFourBytes[0] = 0x00;
@@ -770,7 +760,7 @@ namespace Tfres
         #region Read-Header-Bytes
 
         var headerBuffer = new byte[1];
-        var read = 0;
+        int read;
         var headerBytesRead = 0;
 
         while ((read = stream.Read(headerBuffer, 0, headerBuffer.Length)) > 0)
@@ -823,7 +813,7 @@ namespace Tfres
       #region Process-Headers
 
       if (headerBytes == null || headerBytes.Length < 1) throw new IOException("No header data read from the stream.");
-      ret = BuildHeaders(headerBytes);
+      var ret = BuildHeaders(headerBytes);
 
       #endregion
 
@@ -841,11 +831,10 @@ namespace Tfres
         var timeout = false;
         var currentTimeout = 0;
 
-        var read = 0;
-        byte[] buffer;
+        int read;
         long bufferSize = 2048;
         if (bufferSize > bytesRemaining) bufferSize = bytesRemaining;
-        buffer = new byte[bufferSize];
+        var buffer = new byte[bufferSize];
 
         while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
           if (read > 0)
@@ -866,14 +855,14 @@ namespace Tfres
           }
           else
           {
-            if (currentTimeout >= _TimeoutDataReadMs)
+            if (currentTimeout >= _timeoutDataReadMs)
             {
               timeout = true;
               break;
             }
 
-            currentTimeout += _DataReadSleepMs;
-            Thread.Sleep(_DataReadSleepMs);
+            currentTimeout += _dataReadSleepMs;
+            Thread.Sleep(_dataReadSleepMs);
           }
 
         if (timeout) throw new IOException("Timeout reading data from stream.");
@@ -902,7 +891,7 @@ namespace Tfres
       ret += "--- HTTP Request ---" + Environment.NewLine;
       ret += TimestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " " + SourceIp + ":" + SourcePort + " to " + DestIp + ":" +
              DestPort                                     + Environment.NewLine;
-      ret += "  " + Method + " " + RawUrlWithoutQuery + " " + ProtocolVersion    + Environment.NewLine;
+      ret += "  " + Verb + " " + RawUrlWithoutQuery + " " + ProtocolVersion    + Environment.NewLine;
       ret += "  Full URL    : " + FullUrl                                        + Environment.NewLine;
       ret += "  Raw URL     : " + RawUrlWithoutQuery                             + Environment.NewLine;
       ret += "  Querystring : " + Querystring                                    + Environment.NewLine;
@@ -962,7 +951,7 @@ namespace Tfres
 
       var buffer = new byte[1];
       byte[] lenBytes = null;
-      var bytesRead = 0;
+      int bytesRead;
 
       while (true)
       {
@@ -979,7 +968,6 @@ namespace Tfres
             if (lenStr.Contains(";"))
             {
               var lenStrParts = lenStr.Split(new[] {';'}, 2);
-              lenStr = lenStrParts[0];
 
               if (lenStrParts.Length == 2) chunk.Metadata = lenStrParts[1];
             }
@@ -1117,14 +1105,16 @@ namespace Tfres
 
       #region Initial-Values
 
-      var ret = new HttpRequest();
-      ret.TimestampUtc = DateTime.Now.ToUniversalTime();
-      ret.ThreadId = Thread.CurrentThread.ManagedThreadId;
-      ret.SourceIp = "unknown";
-      ret.SourcePort = 0;
-      ret.DestIp = "unknown";
-      ret.DestPort = 0;
-      ret.Headers = new Dictionary<string, string>();
+      var ret = new HttpRequest
+      {
+        TimestampUtc = DateTime.Now.ToUniversalTime(),
+        ThreadId = Thread.CurrentThread.ManagedThreadId,
+        SourceIp = "unknown",
+        SourcePort = 0,
+        DestIp = "unknown",
+        DestPort = 0,
+        Headers = new Dictionary<string, string>()
+      };
 
       #endregion
 
@@ -1147,7 +1137,7 @@ namespace Tfres
             throw new
               ArgumentException("Request line does not contain at least three parts (method, raw URL, protocol/version).");
 
-          ret.Method = (HttpVerb) Enum.Parse(typeof(HttpVerb), requestLine[0], true);
+          ret.Verb = (HttpVerb) Enum.Parse(typeof(HttpVerb), requestLine[0], true);
           ret.FullUrl = requestLine[1];
           ret.ProtocolVersion = requestLine[2];
           ret.RawUrlWithQuery = ret.FullUrl;
@@ -1162,8 +1152,9 @@ namespace Tfres
             ret.DestHostname = uri.Host;
             ret.DestHostPort = uri.Port;
           }
-          catch (Exception)
+          catch
           {
+            // ignore
           }
 
           if (string.IsNullOrEmpty(ret.DestHostname))
@@ -1248,25 +1239,17 @@ namespace Tfres
       var tempString = "";
       var ret = new List<string>();
 
-      foreach (var c in rawUrlWithoutQuery)
+      foreach (var c in rawUrlWithoutQuery.Where(c => position != 0 || string.CompareOrdinal(tempString, "") != 0 || c != '/'))
       {
-        if (position                       == 0 &&
-            string.Compare(tempString, "") == 0 &&
-            c                              == '/')
-          // skip the first slash
-          continue;
-
         if (c != '/' && c != '?') tempString += c;
 
-        if (c == '/' || c == '?')
-        {
-          if (!string.IsNullOrEmpty(tempString))
-            // add to raw URL entries list
-            ret.Add(tempString);
+        if (c != '/' && c != '?') continue;
+        if (!string.IsNullOrEmpty(tempString))
+          // add to raw URL entries list
+          ret.Add(tempString);
 
-          position++;
-          tempString = "";
-        }
+        position++;
+        tempString = "";
       }
 
       if (!string.IsNullOrEmpty(tempString))
@@ -1375,7 +1358,7 @@ namespace Tfres
     {
       if (orig == null && append == null) return null;
 
-      byte[] ret = null;
+      byte[] ret;
 
       if (append == null)
       {

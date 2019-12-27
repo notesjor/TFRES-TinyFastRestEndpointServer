@@ -21,8 +21,8 @@ namespace Tfres
     /// </summary>
     public EndpointManager()
     {
-      _Routes = new List<Endpoint>();
-      _Lock = new object();
+      _routes = new List<Endpoint>();
+      _lock = new object();
     }
 
     #endregion
@@ -33,8 +33,8 @@ namespace Tfres
 
     #region Private-Members
 
-    private readonly List<Endpoint> _Routes;
-    private readonly object _Lock;
+    private readonly List<Endpoint> _routes;
+    private readonly object _lock;
 
     #endregion
 
@@ -67,9 +67,9 @@ namespace Tfres
       var r = Get(method, path);
       if (r == null) return;
 
-      lock (_Lock)
+      lock (_lock)
       {
-        _Routes.Remove(r);
+        _routes.Remove(r);
       }
     }
 
@@ -87,9 +87,9 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_Lock)
+      lock (_lock)
       {
-        return _Routes.FirstOrDefault(i => i.Method == method && i.Path == path);
+        return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path);
       }
     }
 
@@ -107,9 +107,9 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_Lock)
+      lock (_lock)
       {
-        return _Routes.FirstOrDefault(i => i.Method == method && i.Path == path) != null;
+        return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path) != null;
       }
     }
 
@@ -127,9 +127,9 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_Lock)
+      lock (_lock)
       {
-        return _Routes.FirstOrDefault(i => i.Method == method && i.Path == path)?.Handler;
+        return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path)?.Handler;
       }
     }
 
@@ -145,11 +145,11 @@ namespace Tfres
       if (!route.Path.StartsWith("/")) route.Path = "/"      + route.Path;
       if (!route.Path.EndsWith("/")) route.Path = route.Path + "/";
 
-      if (Exists(route.Method, route.Path)) return;
+      if (Exists(route.Verb, route.Path)) return;
 
-      lock (_Lock)
+      lock (_lock)
       {
-        _Routes.Add(route);
+        _routes.Add(route);
       }
     }
 
@@ -157,9 +157,9 @@ namespace Tfres
     {
       if (route == null) throw new ArgumentNullException(nameof(route));
 
-      lock (_Lock)
+      lock (_lock)
       {
-        _Routes.Remove(route);
+        _routes.Remove(route);
       }
     }
 

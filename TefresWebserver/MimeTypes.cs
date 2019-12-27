@@ -17,7 +17,7 @@ namespace Tfres
 
     #region Private-Members
 
-    private static readonly IDictionary<string, string> data =
+    private static readonly IDictionary<string, string> _data =
       new Dictionary<string, string>(StringComparer.InvariantCultureIgnoreCase)
       {
         #region MIME-Types
@@ -616,8 +616,7 @@ namespace Tfres
     /// <returns>String containing MIME type.</returns>
     public static string GetFromExtension(string path)
     {
-      string mime;
-      return data.TryGetValue(Path.GetExtension(path)?.ToLower() ?? "", out mime) ? mime : "application/octet-stream";
+      return _data.TryGetValue(Path.GetExtension(path)?.ToLower() ?? "", out var mime) ? mime : "application/octet-stream";
     }
 
     #endregion

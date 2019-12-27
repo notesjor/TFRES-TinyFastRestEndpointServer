@@ -32,18 +32,18 @@ namespace Tfres
     /// <summary>
     ///   Indicates whether or not the server is listening.
     /// </summary>
-    public bool IsListening => _HttpListener?.IsListening ?? false;
+    public bool IsListening => _httpListener?.IsListening ?? false;
 
     /// <summary>
     ///   Indicate the buffer size to use when reading from a stream to send data to a requestor.
     /// </summary>
     public int StreamReadBufferSize
     {
-      get => _StreamReadBufferSize;
+      get => _streamReadBufferSize;
       set
       {
         if (value < 1) throw new ArgumentException("StreamReadBufferSize must be greater than zero.");
-        _StreamReadBufferSize = value;
+        _streamReadBufferSize = value;
       }
     }
 
@@ -70,17 +70,16 @@ namespace Tfres
 
     #region Private-Members
 
-    private readonly EventWaitHandle _Terminator = new EventWaitHandle(false, EventResetMode.ManualReset);
+    private readonly EventWaitHandle _terminator = new EventWaitHandle(false, EventResetMode.ManualReset);
 
-    private readonly HttpListener _HttpListener;
-    private readonly List<string> _ListenerHostnames;
-    private readonly int _ListenerPort;
-    private int _StreamReadBufferSize = 65536;
+    private readonly HttpListener _httpListener;
+    private readonly List<string> _listenerHostnames;
+    private readonly int _listenerPort;
+    private int _streamReadBufferSize = 65536;
 
-    private readonly Func<HttpContext, Task> _DefaultRoute;
+    private readonly Func<HttpContext, Task> _defaultRoute;
 
-    private readonly CancellationTokenSource _TokenSource;
-    private readonly CancellationToken _Token;
+    private readonly CancellationTokenSource _tokenSource;
 
     #endregion
 
@@ -97,20 +96,19 @@ namespace Tfres
     /// </param>
     public Server(string hostname, int port, Func<HttpContext, Task> defaultRoute)
     {
-      if (string.IsNullOrEmpty(hostname)) hostname = "*";
-      if (port         < 1) throw new ArgumentOutOfRangeException(nameof(port));
-      if (defaultRoute == null) throw new ArgumentNullException(nameof(defaultRoute));
+      if (string.IsNullOrEmpty(hostname)) 
+        hostname = "*";
+      if (port < 1) 
+        throw new ArgumentOutOfRangeException(nameof(port));
 
-      _HttpListener = new HttpListener();
+      _httpListener = new HttpListener();
 
-      _ListenerHostnames = new List<string>();
-      _ListenerHostnames.Add(hostname);
-      _ListenerPort = port;
-      _DefaultRoute = defaultRoute;
-      _TokenSource = new CancellationTokenSource();
-      _Token = _TokenSource.Token;
+      _listenerHostnames = new List<string> { hostname };
+      _listenerPort = port;
+      _defaultRoute = defaultRoute ?? throw new ArgumentNullException(nameof(defaultRoute));
+      _tokenSource = new CancellationTokenSource();
 
-      Task.Run(() => StartServer(_Token), _Token);
+      Task.Run(() => StartServer(_tokenSource.Token), _tokenSource.Token);
     }
 
     /// <summary>
@@ -127,24 +125,23 @@ namespace Tfres
     /// </param>
     public Server(List<string> hostnames, int port, Func<HttpContext, Task> defaultRoute)
     {
-      if (port         < 1) throw new ArgumentOutOfRangeException(nameof(port));
+      if (port < 1) throw new ArgumentOutOfRangeException(nameof(port));
       if (defaultRoute == null) throw new ArgumentNullException(nameof(defaultRoute));
 
-      _HttpListener = new HttpListener();
+      _httpListener = new HttpListener();
 
-      _ListenerHostnames = new List<string>();
+      _listenerHostnames = new List<string>();
       if (hostnames == null || hostnames.Count < 1)
-        _ListenerHostnames.Add("*");
+        _listenerHostnames.Add("*");
       else
         foreach (var curr in hostnames)
-          _ListenerHostnames.Add(curr);
+          _listenerHostnames.Add(curr);
 
-      _ListenerPort = port;
-      _DefaultRoute = defaultRoute;
-      _TokenSource = new CancellationTokenSource();
-      _Token = _TokenSource.Token;
+      _listenerPort = port;
+      _defaultRoute = defaultRoute;
+      _tokenSource = new CancellationTokenSource();
 
-      Task.Run(() => StartServer(_Token), _Token);
+      Task.Run(() => StartServer(_tokenSource.Token), _tokenSource.Token);
     }
 
     #endregion
@@ -159,19 +156,19 @@ namespace Tfres
       if (!disposing)
         return;
 
-      if (_HttpListener != null)
+      if (_httpListener != null)
       {
-        if (_HttpListener.IsListening) _HttpListener.Stop();
-        _HttpListener.Close();
+        if (_httpListener.IsListening) _httpListener.Stop();
+        _httpListener.Close();
       }
 
-      _TokenSource.Cancel();
+      _tokenSource.Cancel();
     }
 
     private void StartServer(CancellationToken token)
     {
       Task.Run(() => AcceptConnections(token), token);
-      _Terminator.WaitOne();
+      _terminator.WaitOne();
     }
 
     private void AcceptConnections(CancellationToken token)
@@ -180,40 +177,37 @@ namespace Tfres
       {
         #region Start-Listeners
 
-        foreach (var curr in _ListenerHostnames)
-          _HttpListener.Prefixes.Add("http://" + curr + ":" + _ListenerPort + "/");
+        foreach (var curr in _listenerHostnames)
+          _httpListener.Prefixes.Add("http://" + curr + ":" + _listenerPort + "/");
 
-        _HttpListener.Start();
+        _httpListener.Start();
 
         #endregion
 
-        while (_HttpListener.IsListening)
+        while (_httpListener.IsListening)
           ThreadPool.QueueUserWorkItem(c =>
           {
             if (token.IsCancellationRequested) throw new OperationCanceledException();
 
             var listenerContext = c as HttpListenerContext;
-            HttpContext ctx = null;
 
             try
             {
-              ctx = new HttpContext(listenerContext);
+              var ctx = new HttpContext(listenerContext);
 
               #region Process-Via-Routing
 
               Task.Run(() =>
               {
-                Func<HttpContext, Task> handler = null;
-
-                handler = _endpoints.Match(ctx.Request.Method, ctx.Request.RawUrlWithoutQuery);
+                var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery);
                 if (handler != null)
                 {
                   handler(ctx).Wait(token);
                   return;
                 }
 
-                _DefaultRoute(ctx).Wait(token);
-              });
+                _defaultRoute(ctx).Wait(token);
+              }, token);
 
               #endregion
             }
@@ -221,7 +215,7 @@ namespace Tfres
             {
               // ignore
             }
-          }, _HttpListener.GetContext());
+          }, _httpListener.GetContext());
       }
       catch
       {
