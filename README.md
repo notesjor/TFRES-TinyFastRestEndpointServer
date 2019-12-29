@@ -24,7 +24,7 @@ A tiny fast REST-Server written in C# async.
         s.AddEndpoint(HttpVerb.GET, "/helloWorld/", GetHelloRoute);
         s.AddEndpoint(HttpVerb.GET, "/jsonObj/", GetJsonObjRoute);
         s.AddEndpoint(HttpVerb.POST, "/sayHello/", PostSayHello);
-		s.AddEndpoint(HttpVerb.GET, "/download/", GetBigFileStream);
+	s.AddEndpoint(HttpVerb.GET, "/download/", GetBigFileStream);
   
         Console.WriteLine("Press ENTER to exit");
         Console.ReadLine();
@@ -42,25 +42,25 @@ A tiny fast REST-Server written in C# async.
       static Task PostSayHello(HttpContext ctx)
         => new HttpResponse(ctx, true, 200, null, "text/plain", $"Hello {ctx.PostData<Person>().Name}!");
 		
-	  static Task GetBigFileStream(HttpContext ctx){
-		// Upload
-		if (ctx.Request.ChunkedTransfer)
-		{
-		bool finalChunk = false;
-		while (!finalChunk)
-		{
-			Chunk chunk = await ctx.Request.ReadChunk();
-			// work with chunk.Length and chunk.Data (byte[])
-			finalChunk = chunk.IsFinalChunk;
-		}
-		}
-		else
-		{
-		    // read from ctx.Request.Data stream   
-		}
-		
-		// Download
-		var buffer = new byte[65536];
+      static Task GetBigFileStream(HttpContext ctx){
+        // Upload
+        if (ctx.Request.ChunkedTransfer)
+        {
+          bool finalChunk = false;
+          while (!finalChunk)
+          {
+            Chunk chunk = await ctx.Request.ReadChunk();
+            // work with chunk.Length and chunk.Data (byte[])
+            finalChunk = chunk.IsFinalChunk;
+          }
+        }
+        else
+        {
+          // read from ctx.Request.Data stream   
+        }
+
+        // Download
+        var buffer = new byte[65536];
         var size = 0;
         using (var fs = new FileStream("download.mp4", FileMode.Open, FileAccess.Read)) // you need a download.mp4 file
         {
@@ -72,7 +72,7 @@ A tiny fast REST-Server written in C# async.
           }
           return arg.Response.SendFinalChunk(buffer);
         }
-	  }
+      }
     }
   
     public class Person
