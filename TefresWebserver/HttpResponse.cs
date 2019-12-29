@@ -65,7 +65,7 @@ namespace Tfres
     private HttpResponse()
     {
     }
-    
+
     internal HttpResponse(HttpRequest req, HttpListenerContext ctx, int bufferSize)
     {
       _request = req ?? throw new ArgumentNullException(nameof(req));
@@ -86,12 +86,12 @@ namespace Tfres
     {
       var ret = "";
 
-      ret += "--- HTTP Response ---"                              + Environment.NewLine;
-      ret += "  Status Code        : " + StatusCode               + Environment.NewLine;
-      ret += "  Status Description : " + GetStatusDescription(StatusCode)        + Environment.NewLine;
-      ret += "  Content            : " + ContentType              + Environment.NewLine;
+      ret += "--- HTTP Response ---" + Environment.NewLine;
+      ret += "  Status Code        : " + StatusCode + Environment.NewLine;
+      ret += "  Status Description : " + GetStatusDescription(StatusCode) + Environment.NewLine;
+      ret += "  Content            : " + ContentType + Environment.NewLine;
       ret += "  Content Length     : " + ContentLength + " bytes" + Environment.NewLine;
-      ret += "  Chunked Transfer   : " + ChunkedTransfer          + Environment.NewLine;
+      ret += "  Chunked Transfer   : " + ChunkedTransfer + Environment.NewLine;
       if (Headers != null && Headers.Count > 0)
       {
         ret += "  Headers            : " + Environment.NewLine;
@@ -214,9 +214,8 @@ namespace Tfres
 
       try
       {
-        if (_request.Verb != HttpVerb.HEAD)
-          if (bytes != null && bytes.Length > 0)
-            await _outputStream.WriteAsync(bytes, 0, bytes.Length);
+        if (bytes != null && bytes.Length > 0)
+          await _outputStream.WriteAsync(bytes, 0, bytes.Length);
       }
       catch
       {
@@ -251,9 +250,8 @@ namespace Tfres
 
       try
       {
-        if (_request.Verb != HttpVerb.HEAD)
-          if (data != null && data.Length > 0)
-            await _outputStream.WriteAsync(data, 0, (int) _response.ContentLength64);
+        if (data != null && data.Length > 0)
+          await _outputStream.WriteAsync(data, 0, (int)_response.ContentLength64);
       }
       catch
       {
@@ -287,25 +285,24 @@ namespace Tfres
 
       try
       {
-        if (_request.Verb != HttpVerb.HEAD)
-          if (stream != null && stream.CanRead && contentLength > 0)
+        if (stream != null && stream.CanRead && contentLength > 0)
+        {
+          var bytesRemaining = contentLength;
+
+          while (bytesRemaining > 0)
           {
-            var bytesRemaining = contentLength;
-
-            while (bytesRemaining > 0)
+            var buffer = new byte[_streamBufferSize];
+            var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+            if (bytesRead > 0)
             {
-              var buffer = new byte[_streamBufferSize];
-              var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-              if (bytesRead > 0)
-              {
-                await _outputStream.WriteAsync(buffer, 0, bytesRead);
-                bytesRemaining -= bytesRead;
-              }
+              await _outputStream.WriteAsync(buffer, 0, bytesRead);
+              bytesRemaining -= bytesRead;
             }
-
-            stream.Close();
-            stream.Dispose();
           }
+
+          stream.Close();
+          stream.Dispose();
+        }
       }
       catch
       {
