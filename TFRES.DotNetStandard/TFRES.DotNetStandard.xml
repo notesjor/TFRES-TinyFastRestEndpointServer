@@ -1,0 +1,542 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>TFRES.DotNetStandard</name>
+    </assembly>
+    <members>
+        <member name="T:Tfres.Chunk">
+            <summary>
+              A chunk of data, used when reading from a request where the Transfer-Encoding header includes 'chunked'.
+            </summary>
+        </member>
+        <member name="P:Tfres.Chunk.Data">
+            <summary>
+              Data.
+            </summary>
+        </member>
+        <member name="P:Tfres.Chunk.IsFinalChunk">
+            <summary>
+              Indicates whether or not this is the final chunk, i.e. the chunk length received was zero.
+            </summary>
+        </member>
+        <member name="P:Tfres.Chunk.Length">
+            <summary>
+              Length of the data.
+            </summary>
+        </member>
+        <member name="P:Tfres.Chunk.Metadata">
+            <summary>
+              Any additional metadata that appears on the length line after the length hex value and semicolon.
+            </summary>
+        </member>
+        <member name="T:Tfres.Endpoint">
+            <summary>
+              Assign a method handler for when requests are received matching the supplied method and path.
+            </summary>
+        </member>
+        <member name="M:Tfres.Endpoint.#ctor(Tfres.HttpVerb,System.String,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+            <summary>
+              Create a new route object.
+            </summary>
+            <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE, etc.</param>
+            <param name="path">The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.</param>
+            <param name="handler">The method that should be called to handle the request.</param>
+        </member>
+        <member name="P:Tfres.Endpoint.Verb">
+            <summary>
+              The HTTP method, i.e. GET, PUT, POST, DELETE, etc.
+            </summary>
+        </member>
+        <member name="P:Tfres.Endpoint.Path">
+            <summary>
+              The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.
+            </summary>
+        </member>
+        <member name="P:Tfres.Endpoint.Handler">
+            <summary>
+              The
+            </summary>
+        </member>
+        <member name="T:Tfres.EndpointManager">
+            <summary>
+              Static route manager.  Static routes are used for requests using any HTTP method to a specific path.
+            </summary>
+        </member>
+        <member name="M:Tfres.EndpointManager.#ctor">
+            <summary>
+              Instantiate the object.
+            </summary>
+        </member>
+        <member name="M:Tfres.EndpointManager.Add(Tfres.HttpVerb,System.String,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+            <summary>
+              Add a route.
+            </summary>
+            <param name="method">The HTTP method.</param>
+            <param name="path">URL path, i.e. /path/to/resource.</param>
+            <param name="handler">Method to invoke.</param>
+        </member>
+        <member name="M:Tfres.EndpointManager.Remove(Tfres.HttpVerb,System.String)">
+            <summary>
+              Remove a route.
+            </summary>
+            <param name="method">The HTTP method.</param>
+            <param name="path">URL path.</param>
+        </member>
+        <member name="M:Tfres.EndpointManager.Get(Tfres.HttpVerb,System.String)">
+            <summary>
+              Retrieve a static route.
+            </summary>
+            <param name="method">The HTTP method.</param>
+            <param name="path">URL path.</param>
+            <returns>Endpoint if the route exists, otherwise null.</returns>
+        </member>
+        <member name="M:Tfres.EndpointManager.Exists(Tfres.HttpVerb,System.String)">
+            <summary>
+              Check if a static route exists.
+            </summary>
+            <param name="method">The HTTP method.</param>
+            <param name="path">URL path.</param>
+            <returns>True if exists.</returns>
+        </member>
+        <member name="M:Tfres.EndpointManager.Match(Tfres.HttpVerb,System.String)">
+            <summary>
+              Match a request method and URL to a handler method.
+            </summary>
+            <param name="method">The HTTP method.</param>
+            <param name="path">URL path.</param>
+            <returns>Method to invoke.</returns>
+        </member>
+        <member name="T:Tfres.HttpContext">
+            <summary>
+              HTTP context including both request and response.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpContext.Request">
+            <summary>
+              The HTTP request that was received.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpContext.Response">
+            <summary>
+              The HTTP response that will be sent.  This object is preconstructed on your behalf and can be modified directly.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpContext.StreamBufferSize">
+            <summary>
+              Buffer size to use while writing the response from a supplied stream.
+            </summary>
+        </member>
+        <member name="M:Tfres.HttpContext.GetData(System.Boolean)">
+            <summary>
+              Return Data send as GET-Parameter
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:Tfres.HttpContext.PostData``1">
+            <summary>
+              Return Post-Data as T
+            </summary>
+            <returns>Post-Data as T</returns>
+        </member>
+        <member name="T:Tfres.HttpRequest">
+            <summary>
+              Data extracted from an incoming HTTP request.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.TimestampUtc">
+            <summary>
+              UTC timestamp from when the request was received.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.ThreadId">
+            <summary>
+              Thread ID on which the request exists.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.ProtocolVersion">
+            <summary>
+              The protocol and version.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.SourceIp">
+            <summary>
+              IP address of the requestor (client).
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.SourcePort">
+            <summary>
+              TCP port from which the request originated on the requestor (client).
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.DestIp">
+            <summary>
+              IP address of the recipient (server).
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.DestPort">
+            <summary>
+              TCP port on which the request was received by the recipient (server).
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.DestHostname">
+            <summary>
+              The destination hostname as found in the request line, if present.
+            </summary>
+        </member>
+        <member name="F:Tfres.HttpRequest.DestHostPort">
+            <summary>
+              The destination host port as found in the request line, if present.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.Keepalive">
+            <summary>
+              Specifies whether or not the client requested HTTP keepalives.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.Verb">
+            <summary>
+              The HTTP method used in the request.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.ChunkedTransfer">
+            <summary>
+              Indicates whether or not chunked transfer encoding was detected.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.Gzip">
+            <summary>
+              Indicates whether or not the payload has been gzip compressed.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.Deflate">
+            <summary>
+              Indicates whether or not the payload has been deflate compressed.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.FullUrl">
+            <summary>
+              The full URL as sent by the requestor (client).
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.RawUrlWithQuery">
+            <summary>
+              The raw (relative) URL with the querystring attached.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.RawUrlWithoutQuery">
+            <summary>
+              The raw (relative) URL without the querystring attached.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.RawUrlEntries">
+            <summary>
+              List of items found in the raw URL.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.Querystring">
+            <summary>
+              The querystring attached to the URL.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.QuerystringEntries">
+            <summary>
+              Dictionary containing key-value pairs from items found in the querystring.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.Useragent">
+            <summary>
+              The useragent specified in the request.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.ContentLength">
+            <summary>
+              The number of bytes in the request body.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.ContentType">
+            <summary>
+              The content type as specified by the requestor (client).
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.Headers">
+            <summary>
+              The headers found in the request.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.Data">
+            <summary>
+              The stream from which to read the request body sent by the requestor (client).
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpRequest.ListenerContext">
+            <summary>
+              The original HttpListenerContext from which the HttpRequest was constructed.
+            </summary>
+        </member>
+        <member name="M:Tfres.HttpRequest.#ctor">
+            <summary>
+              Instantiate the object.
+            </summary>
+        </member>
+        <member name="M:Tfres.HttpRequest.#ctor(System.Net.HttpListenerContext)">
+            <summary>
+              Instantiate the object using an HttpListenerContext.
+            </summary>
+            <param name="ctx">HttpListenerContext.</param>
+        </member>
+        <member name="M:Tfres.HttpRequest.FromStream(System.IO.Stream)">
+            <summary>
+              Instantiate the object using a generic stream.
+            </summary>
+            <param name="stream">Stream.</param>
+            <returns>HttpRequest.</returns>
+        </member>
+        <member name="M:Tfres.HttpRequest.FromStream(System.Net.Sockets.NetworkStream)">
+            <summary>
+              Instantiate the object using a network stream.
+            </summary>
+            <param name="stream">NetworkStream.</param>
+            <returns>HttpRequest.</returns>
+        </member>
+        <member name="M:Tfres.HttpRequest.FromTcpClient(System.Net.Sockets.TcpClient)">
+            <summary>
+              Instantiate the object using a TCP client.
+            </summary>
+            <param name="client">TcpClient.</param>
+            <returns>HttpRequest.</returns>
+        </member>
+        <member name="M:Tfres.HttpRequest.ToString">
+            <summary>
+              Retrieve a string-formatted, human-readable copy of the HttpRequest instance.
+            </summary>
+            <returns>String-formatted, human-readable copy of the HttpRequest instance.</returns>
+        </member>
+        <member name="M:Tfres.HttpRequest.RetrieveHeaderValue(System.String)">
+            <summary>
+              Retrieve a specified header value from either the headers or the querystring (case insensitive).
+            </summary>
+            <param name="key"></param>
+            <returns></returns>
+        </member>
+        <member name="M:Tfres.HttpRequest.ReadChunk">
+            <summary>
+              For chunked transfer-encoded requests, read the next chunk.
+            </summary>
+            <returns>Chunk.</returns>
+        </member>
+        <member name="M:Tfres.HttpRequest.PostData``1">
+            <summary>
+              Return Post-Data as T
+            </summary>
+            <returns>Post-Data as T</returns>
+        </member>
+        <member name="M:Tfres.HttpRequest.GetData(System.Boolean)">
+            <summary>
+              Return Data send as GET-Parameter
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="P:Tfres.HttpRequest.GetDataAsString">
+            <summary>
+              The querystring attached to the URL.
+            </summary>
+        </member>
+        <member name="T:Tfres.HttpResponse">
+            <summary>
+              Response to an HTTP request.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpResponse.StatusCode">
+            <summary>
+              The HTTP status code to return to the requestor (client).
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpResponse.Headers">
+            <summary>
+              User-supplied headers to include in the response.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpResponse.ContentType">
+            <summary>
+              User-supplied content-type to include in the response.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpResponse.ContentLength">
+            <summary>
+              The length of the supplied response data.
+            </summary>
+        </member>
+        <member name="P:Tfres.HttpResponse.ChunkedTransfer">
+            <summary>
+              Indicates whether or not chunked transfer encoding should be indicated in the response.
+            </summary>
+        </member>
+        <member name="M:Tfres.HttpResponse.#ctor">
+            <summary>
+              Instantiate the object.
+            </summary>
+        </member>
+        <member name="M:Tfres.HttpResponse.ToString">
+            <summary>
+              Retrieve a string-formatted, human-readable copy of the HttpResponse instance.
+            </summary>
+            <returns>String-formatted, human-readable copy of the HttpResponse instance.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Int32)">
+            <summary>
+            Send headers (statusCode) and no data to the requestor and terminate the connection.
+            </summary>
+            <param name="statusCode">StatusCode</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Int32,System.String)">
+            <summary>
+            Send headers (statusCode) and a error message to the requestor and terminate the connection.
+            </summary>
+            <param name="statusCode">StatusCode</param>
+            <param name="errorMessage">Plaintext error message</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Object)">
+            <summary>
+              Send headers and data to the requestor and terminate the connection.
+            </summary>
+            <param name="obj">Object.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send">
+            <summary>
+              Send headers and no data to the requestor and terminate the connection.
+            </summary>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Int64)">
+            <summary>
+              Send headers with a specified content length and no data to the requestor and terminate the connection.  Useful for
+              HEAD requests where the content length must be set.
+            </summary>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.String,System.String)">
+            <summary>
+              Send headers and data to the requestor and terminate the connection.
+            </summary>
+            <param name="mimeType">Force a special MIME-Type</param>
+            <param name="data">Data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.String)">
+            <summary>
+              Send headers and data to the requestor and terminate the connection.
+            </summary>
+            <param name="data">Data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Byte[])">
+            <summary>
+              Send headers and data to the requestor and terminate the connection.
+            </summary>
+            <param name="data">Data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Int64,System.IO.Stream)">
+            <summary>
+              Send headers and data to the requestor and terminate.
+            </summary>
+            <param name="contentLength">Number of bytes to send.</param>
+            <param name="stream">Stream containing the data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.SendChunk(System.Byte[])">
+            <summary>
+              Send headers (if not already sent) and a chunk of data using chunked transfer-encoding, and keep the connection
+              in-tact.
+            </summary>
+            <param name="chunk">Chunk of data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.SendFinalChunk(System.Byte[])">
+            <summary>
+              Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
+              connection.
+            </summary>
+            <param name="chunk">Chunk of data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="T:Tfres.MimeTypes">
+            <summary>
+              MIME types and file extensions.
+            </summary>
+        </member>
+        <member name="M:Tfres.MimeTypes.GetFromExtension(System.String)">
+            <summary>
+              Retrieve MIME type from file extension.
+            </summary>
+            <param name="path">File path.</param>
+            <returns>String containing MIME type.</returns>
+        </member>
+        <member name="T:Tfres.Server">
+            <summary>
+              Watson webserver.
+            </summary>
+        </member>
+        <member name="M:Tfres.Server.Dispose">
+            <summary>
+              Tear down the server and dispose of background workers.
+            </summary>
+        </member>
+        <member name="P:Tfres.Server.IsListening">
+            <summary>
+              Indicates whether or not the server is listening.
+            </summary>
+        </member>
+        <member name="P:Tfres.Server.StreamReadBufferSize">
+            <summary>
+              Indicate the buffer size to use when reading from a stream to send data to a requestor.
+            </summary>
+        </member>
+        <member name="F:Tfres.Server._endpoints">
+            <summary>
+              Static routes; i.e. routes with explicit matching and any HTTP method.
+            </summary>
+        </member>
+        <member name="M:Tfres.Server.AddEndpoint(Tfres.HttpVerb,System.String,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+            <summary>
+              Add a static route to the server.
+            </summary>
+            <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
+            <param name="path">The raw URL to match, i.e. /foo/bar.</param>
+            <param name="handler">The method to which control should be passed.</param>
+        </member>
+        <member name="M:Tfres.Server.#ctor(System.String,System.Int32,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+            <summary>
+              Creates a new instance of the Watson Webserver.
+            </summary>
+            <param name="hostname">Hostname or IP address on which to listen.</param>
+            <param name="port">TCP port on which to listen.</param>
+            <param name="defaultRoute">
+              Method used when a request is received and no matching routes are found.  Commonly used as
+              the 404 handler when routes are used.
+            </param>
+        </member>
+        <member name="M:Tfres.Server.#ctor(System.Collections.Generic.List{System.String},System.Int32,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+            <summary>
+              Creates a new instance of the Watson Webserver.
+            </summary>
+            <param name="hostnames">
+              Hostnames or IP addresses on which to listen.  Note: multiple listener endpoints is not
+              supported on all platforms.
+            </param>
+            <param name="port">TCP port on which to listen.</param>
+            <param name="defaultRoute">
+              Method used when a request is received and no matching routes are found.  Commonly used as
+              the 404 handler when routes are used.
+            </param>
+        </member>
+        <member name="M:Tfres.Server.Dispose(System.Boolean)">
+            <summary>
+              Tear down the server and dispose of background workers.
+            </summary>
+        </member>
+    </members>
+</doc>

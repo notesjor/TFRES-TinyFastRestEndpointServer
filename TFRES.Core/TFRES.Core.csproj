@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <PackageLicenseUrl>https://www.gnu.org/licenses/gpl-3.0.de.html</PackageLicenseUrl>
@@ -19,6 +19,10 @@
     <Version>1.1.0</Version>
     <Company>TFRES.Core</Company>
     <Authors>TFRES.Core</Authors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DocumentationFile>W:\Kooperationsprojekte\TfresWebserver\TFRES.Core\TFRES.Core.xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
