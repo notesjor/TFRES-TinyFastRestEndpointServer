@@ -4,6 +4,7 @@ A tiny fast REST-Server written in C# async.
 
 ## Important Notes
 - TFRES only supports static Endpoints (called: static Routes in Watson Webserver).
+- TFRES based now on WatsonWebserver 3.x - So you need to change your signatures from ''HttpResponse OldFunc(HttpRequest arg)'' to ''Task NewFunc(HttpContext ctx)''.
   
 ## Example using Routes
 ```
@@ -22,24 +23,56 @@ A tiny fast REST-Server written in C# async.
         // add static routes
         s.AddEndpoint(HttpVerb.GET, "/helloWorld/", GetHelloRoute);
         s.AddEndpoint(HttpVerb.GET, "/jsonObj/", GetJsonObjRoute);
-        s.AddEndpoint(HttpVerb.POST, "/sayHello/", PostSayHelloRoute);
+        s.AddEndpoint(HttpVerb.POST, "/sayHello/", PostSayHello);
+		s.AddEndpoint(HttpVerb.GET, "/download/", GetBigFileStream);
   
         Console.WriteLine("Press ENTER to exit");
         Console.ReadLine();
       }
   
-      static HttpResponse DefaultRoute(HttpRequest req)
-        => new HttpResponse(req, true, 200, null, "text/plain", "Hello from the default route!");
+      static Task DefaultRoute(HttpContext ctx)
+        => ctx.Response.Send(200); // send only HTTP-StatusCode
   
-      static HttpResponse GetHelloRoute(HttpRequest req)
-        => new HttpResponse(req, true, 200, null, "text/plain", "Hello from the GET /hello static route!");
+      static Task GetHelloRoute(HttpContext ctx)
+        => ctx.Response.Send(200, "Hello from the GET /hello static route!"); // send StatusCode and Text-Message
 
-      private static HttpResponse GetJsonObjRoute(HttpRequest req)
-        => new HttpResponse(req, true, 200, null, "application/json", 
-                            JsonConvert.SerializeObject(new Person { Name = "Jan", Animals = 1 }));
+      private static Task GetJsonObjRoute(HttpContext ctx)
+        => ctx.Response.Send(new Person { Name = "Jan", Animals = 1 }); // send an object JSON serialized
       
-      static HttpResponse PostSayHelloRoute(HttpRequest req)
-        => new HttpResponse(req, true, 200, null, "text/plain", $"Hello {req.PostData<Person>().Name}!");
+      static Task PostSayHello(HttpContext ctx)
+        => new HttpResponse(ctx, true, 200, null, "text/plain", $"Hello {ctx.PostData<Person>().Name}!");
+		
+	  static Task GetBigFileStream(HttpContext ctx){
+		// Upload
+		if (ctx.Request.ChunkedTransfer)
+		{
+		bool finalChunk = false;
+		while (!finalChunk)
+		{
+			Chunk chunk = await ctx.Request.ReadChunk();
+			// work with chunk.Length and chunk.Data (byte[])
+			finalChunk = chunk.IsFinalChunk;
+		}
+		}
+		else
+		{
+		    // read from ctx.Request.Data stream   
+		}
+		
+		// Download
+		var buffer = new byte[65536];
+        var size = 0;
+        using (var fs = new FileStream("download.mp4", FileMode.Open, FileAccess.Read)) // you need a download.mp4 file
+        {
+          size = fs.Read(buffer, 0, buffer.Length);
+          while (size > 0)
+          {
+            arg.Response.SendChunk(buffer).Wait();
+            size = fs.Read(buffer, 0, buffer.Length);
+          }
+          return arg.Response.SendFinalChunk(buffer);
+        }
+	  }
     }
   
     public class Person
