@@ -13,8 +13,6 @@ namespace Tfres
   /// </summary>
   public class HttpContext
   {
-    private int _streamBufferSize = 65536;
-
     /// <summary>
     ///   The HTTP request that was received.
     /// </summary>
@@ -32,20 +30,7 @@ namespace Tfres
     internal HttpContext(HttpListenerContext ctx)
     {
       Request = new HttpRequest(ctx);
-      Response = new HttpResponse(Request, ctx ?? throw new ArgumentNullException(nameof(ctx)), _streamBufferSize);
-    }
-
-    /// <summary>
-    ///   Buffer size to use while writing the response from a supplied stream.
-    /// </summary>
-    public int StreamBufferSize
-    {
-      get => _streamBufferSize;
-      set
-      {
-        if (value < 1) throw new ArgumentException("StreamBufferSize must be greater than zero bytes.");
-        _streamBufferSize = value;
-      }
+      Response = new HttpResponse(Request, ctx ?? throw new ArgumentNullException(nameof(ctx)));
     }
 
     /// <summary>

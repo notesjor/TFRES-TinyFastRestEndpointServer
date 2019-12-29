@@ -96,9 +96,9 @@ namespace Tfres
     /// </param>
     public Server(string hostname, int port, Func<HttpContext, Task> defaultRoute)
     {
-      if (string.IsNullOrEmpty(hostname)) 
+      if (string.IsNullOrEmpty(hostname))
         hostname = "*";
-      if (port < 1) 
+      if (port < 1)
         throw new ArgumentOutOfRangeException(nameof(port));
 
       _httpListener = new HttpListener();
@@ -197,17 +197,14 @@ namespace Tfres
 
               #region Process-Via-Routing
 
-              Task.Run(() =>
+              var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery);
+              if (handler != null)
               {
-                var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery);
-                if (handler != null)
-                {
-                  handler(ctx).Wait(token);
-                  return;
-                }
+                handler(ctx).Wait(token);
+                return;
+              }
 
-                _defaultRoute(ctx).Wait(token);
-              }, token);
+              _defaultRoute(ctx).Wait(token);
 
               #endregion
             }

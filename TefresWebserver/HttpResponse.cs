@@ -39,16 +39,9 @@ namespace Tfres
     /// </summary>
     public long ContentLength { get; set; }
 
-    /// <summary>
-    ///   Indicates whether or not chunked transfer encoding should be indicated in the response.
-    /// </summary>
-    public bool ChunkedTransfer { get; set; } = false;
-
     #endregion
 
     #region Private-Members
-
-    private readonly int _streamBufferSize = 65536;
 
     private readonly HttpRequest _request;
     private readonly HttpListenerResponse _response;
@@ -66,11 +59,10 @@ namespace Tfres
     {
     }
 
-    internal HttpResponse(HttpRequest req, HttpListenerContext ctx, int bufferSize)
+    internal HttpResponse(HttpRequest req, HttpListenerContext ctx)
     {
       _request = req ?? throw new ArgumentNullException(nameof(req));
       _response = ctx?.Response ?? throw new ArgumentNullException(nameof(ctx));
-      _streamBufferSize = bufferSize;
       _outputStream = _response.OutputStream;
     }
 
@@ -91,7 +83,7 @@ namespace Tfres
       ret += "  Status Description : " + GetStatusDescription(StatusCode) + Environment.NewLine;
       ret += "  Content            : " + ContentType + Environment.NewLine;
       ret += "  Content Length     : " + ContentLength + " bytes" + Environment.NewLine;
-      ret += "  Chunked Transfer   : " + ChunkedTransfer + Environment.NewLine;
+      ret += "  Chunked Transfer   : " + true + Environment.NewLine;
       if (Headers != null && Headers.Count > 0)
       {
         ret += "  Headers            : " + Environment.NewLine;
@@ -103,6 +95,21 @@ namespace Tfres
       }
 
       return ret;
+    }
+
+    /// <summary>
+    ///   Send headers and no data to the requestor and terminate the connection.
+    /// </summary>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> Send()
+    {
+      if (!_headersSent) SendHeaders();
+
+      await _outputStream.FlushAsync();
+      _outputStream.Close();
+
+      _response?.Close();
+      return true;
     }
 
     /// <summary>
@@ -126,7 +133,8 @@ namespace Tfres
     {
       StatusCode = statusCode;
       ContentType = "text/plain";
-      return Send(errorMessage);
+      using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(errorMessage)))
+        return Send(ms.Length, ms);
     }
 
     /// <summary>
@@ -136,27 +144,17 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public Task<bool> Send(object obj)
     {
-      return Send(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj)));
+      using (var ms = new MemoryStream())
+      using (var wr = new StreamWriter(ms))
+      {
+        var serializer = new JsonSerializer();
+        serializer.Serialize(wr, obj);
+        ms.Seek(0, SeekOrigin.Begin);
+        return Send(ms.Length, ms);
+      }
     }
 
-    /// <summary>
-    ///   Send headers and no data to the requestor and terminate the connection.
-    /// </summary>
-    /// <returns>True if successful.</returns>
-    public async Task<bool> Send()
-    {
-      if (ChunkedTransfer)
-        throw new
-          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
-      if (!_headersSent) SendHeaders();
-
-      await _outputStream.FlushAsync();
-      _outputStream.Close();
-
-      _response?.Close();
-      return true;
-    }
-
+    /*
     /// <summary>
     ///   Send headers with a specified content length and no data to the requestor and terminate the connection.  Useful for
     ///   HEAD requests where the content length must be set.
@@ -176,61 +174,18 @@ namespace Tfres
       _response?.Close();
       return true;
     }
+    */
 
     /// <summary>
     ///   Send headers and data to the requestor and terminate the connection.
     /// </summary>
-    /// <param name="mimeType">Force a special MIME-Type</param>
     /// <param name="data">Data.</param>
+    /// <param name="mimeType">Force a special MIME-Type</param>
     /// <returns>True if successful.</returns>
-    public Task<bool> Send(string mimeType, string data)
+    public async Task<bool> Send(string data, string mimeType = "application/json")
     {
       ContentType = mimeType;
-      return Send(data);
-    }
-
-    /// <summary>
-    ///   Send headers and data to the requestor and terminate the connection.
-    /// </summary>
-    /// <param name="data">Data.</param>
-    /// <returns>True if successful.</returns>
-    public async Task<bool> Send(string data)
-    {
-      if (ChunkedTransfer)
-        throw new
-          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
-      if (!_headersSent) SendHeaders();
-
-      byte[] bytes = null;
-      if (!string.IsNullOrEmpty(data))
-      {
-        bytes = Encoding.UTF8.GetBytes(data);
-        _response.ContentLength64 = bytes.Length;
-      }
-      else
-      {
-        _response.ContentLength64 = 0;
-      }
-
-      try
-      {
-        if (bytes != null && bytes.Length > 0)
-          await _outputStream.WriteAsync(bytes, 0, bytes.Length);
-      }
-      catch
-      {
-        // do nothing
-        return false;
-      }
-      finally
-      {
-        await _outputStream.FlushAsync();
-        _outputStream.Close();
-
-        _response?.Close();
-      }
-
-      return true;
+      return await Send(Encoding.UTF8.GetBytes(data));
     }
 
     /// <summary>
@@ -240,34 +195,20 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public async Task<bool> Send(byte[] data)
     {
-      if (ChunkedTransfer)
-        throw new
-          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
-      if (!_headersSent) SendHeaders();
-
-      if (data != null && data.Length > 0) _response.ContentLength64 = data.Length;
-      else _response.ContentLength64 = 0;
-
       try
       {
-        if (data != null && data.Length > 0)
-          await _outputStream.WriteAsync(data, 0, (int)_response.ContentLength64);
+        using (var ms = new MemoryStream(data))
+          await Send(data.Length, ms);
+        return true;
       }
       catch
       {
         // do nothing
         return false;
       }
-      finally
-      {
-        await _outputStream.FlushAsync();
-        _outputStream.Close();
-
-        _response?.Close();
-      }
-
-      return true;
     }
+
+    private const int _bufferSize = 1024 * 1024;
 
     /// <summary>
     ///   Send headers and data to the requestor and terminate.
@@ -277,31 +218,22 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public async Task<bool> Send(long contentLength, Stream stream)
     {
-      if (ChunkedTransfer)
-        throw new
-          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
+      if (!_headersSent)
+        SendHeaders();
       ContentLength = contentLength;
-      if (!_headersSent) SendHeaders();
 
       try
       {
         if (stream != null && stream.CanRead && contentLength > 0)
         {
-          var bytesRemaining = contentLength;
-
-          while (bytesRemaining > 0)
+          var buffer = new byte[_bufferSize];
+          var read = 0;
+          do
           {
-            var buffer = new byte[_streamBufferSize];
-            var bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-            if (bytesRead > 0)
-            {
-              await _outputStream.WriteAsync(buffer, 0, bytesRead);
-              bytesRemaining -= bytesRead;
-            }
-          }
-
-          stream.Close();
-          stream.Dispose();
+            read = stream.Read(buffer, 0, buffer.Length);
+            if (read > 0)
+              await SendChunk(buffer, read);
+          } while (read != 0);
         }
       }
       catch
@@ -311,10 +243,7 @@ namespace Tfres
       }
       finally
       {
-        await _outputStream.FlushAsync();
-        _outputStream.Close();
-
-        _response?.Close();
+        await SendFinalChunk(null, 0);
       }
 
       return true;
@@ -328,28 +257,29 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public async Task<bool> SendChunk(byte[] chunk)
     {
-      if (!ChunkedTransfer)
-        throw new
-          IOException("Response is not configured to use chunked transfer-encoding.  Set ChunkedTransfer to true first, otherwise use Send().");
-      if (!_headersSent) SendHeaders();
+      if (!_headersSent)
+        SendHeaders();
+      return await SendChunk(chunk, chunk.Length);
+    }
 
+    /// <summary>
+    ///   Send headers (if not already sent) and a chunk of data using chunked transfer-encoding, and keep the connection
+    ///   in-tact.
+    /// </summary>
+    /// <param name="chunk">Chunk of data.</param>
+    /// <returns>True if successful.</returns>
+    private async Task<bool> SendChunk(byte[] chunk, int length)
+    {
       try
       {
-        if (chunk == null || chunk.Length < 1) chunk = new byte[0];
-
-        // byte[] packagedChunk = PackageChunk(chunk);
-        // await _OutputStream.WriteAsync(packagedChunk, 0, packagedChunk.Length);
-        await _outputStream.WriteAsync(chunk, 0, chunk.Length);
+        if (chunk == null || chunk.Length < 1)
+          chunk = new byte[0];
+        _outputStream.Write(chunk, 0, length);
       }
       catch
       {
         // do nothing
         return false;
-      }
-      finally
-      {
-        await _outputStream.FlushAsync();
-        // do not close or dispose
       }
 
       return true;
@@ -363,14 +293,23 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public async Task<bool> SendFinalChunk(byte[] chunk)
     {
-      if (!ChunkedTransfer)
-        throw new
-          IOException("Response is not configured to use chunked transfer-encoding.  Set ChunkedTransfer to true first, otherwise use Send().");
-      if (!_headersSent) SendHeaders();
+      if (!_headersSent)
+        SendHeaders();
 
+      return await SendFinalChunk(chunk, chunk.Length);
+    }
+
+    /// <summary>
+    ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
+    ///   connection.
+    /// </summary>
+    /// <param name="chunk">Chunk of data.</param>
+    /// <returns>True if successful.</returns>
+    private async Task<bool> SendFinalChunk(byte[] chunk, int length)
+    {
       try
       {
-        if (chunk != null && chunk.Length > 0) await _outputStream.WriteAsync(chunk, 0, chunk.Length);
+        if (chunk != null && length > 0) await _outputStream.WriteAsync(chunk, 0, length);
 
         var endChunk = new byte[0];
         await _outputStream.WriteAsync(endChunk, 0, endChunk.Length);
@@ -399,19 +338,26 @@ namespace Tfres
     {
       if (_headersSent) throw new IOException("Headers already sent.");
 
-      _response.ContentLength64 = ContentLength;
-      _response.StatusCode = StatusCode;
-      _response.StatusDescription = GetStatusDescription(StatusCode);
-      _response.SendChunked = ChunkedTransfer;
-      _response.AddHeader("Access-Control-Allow-Origin", "*");
-      _response.ContentType = ContentType;
+      try
+      {
+        _response.ContentLength64 = ContentLength;
+        _response.StatusCode = StatusCode;
+        _response.StatusDescription = GetStatusDescription(StatusCode);
+        _response.SendChunked = true;
+        _response.AddHeader("Access-Control-Allow-Origin", "*");
+        _response.ContentType = ContentType;
 
-      if (Headers != null && Headers.Count > 0)
-        foreach (var curr in Headers)
-        {
-          if (string.IsNullOrEmpty(curr.Key)) continue;
-          _response.AddHeader(curr.Key, curr.Value);
-        }
+        if (Headers != null && Headers.Count > 0)
+          foreach (var curr in Headers)
+          {
+            if (string.IsNullOrEmpty(curr.Key)) continue;
+            _response.AddHeader(curr.Key, curr.Value);
+          }
+      }
+      catch
+      {
+        // ignore
+      }
 
       _headersSent = true;
     }
