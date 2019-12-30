@@ -58,6 +58,8 @@
     <Compile Include="HttpContext.cs" />
     <Compile Include="HttpRequest.cs" />
     <Compile Include="HttpResponse.cs" />
+    <Compile Include="HttpStatus.cs" />
+    <Compile Include="HttpStatusHelper.cs" />
     <Compile Include="HttpVerb.cs" />
     <Compile Include="MimeTypes.cs" />
     <Compile Include="OpenApiHelper.cs" />

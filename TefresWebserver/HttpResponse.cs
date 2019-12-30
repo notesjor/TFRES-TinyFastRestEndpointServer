@@ -80,7 +80,7 @@ namespace Tfres
 
       ret += "--- HTTP Response ---" + Environment.NewLine;
       ret += "  Status Code        : " + StatusCode + Environment.NewLine;
-      ret += "  Status Description : " + GetStatusDescription(StatusCode) + Environment.NewLine;
+      ret += "  Status Description : " + HttpStatusHelper.GetStatusMessage(StatusCode) + Environment.NewLine;
       ret += "  Content            : " + ContentType + Environment.NewLine;
       ret += "  Content Length     : " + ContentLength + " bytes" + Environment.NewLine;
       ret += "  Chunked Transfer   : " + true + Environment.NewLine;
@@ -120,6 +120,17 @@ namespace Tfres
     public Task<bool> Send(int statusCode)
     {
       StatusCode = statusCode;
+      return Send();
+    }
+
+    /// <summary>
+    /// Send headers (statusCode) and no data to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="statusCode">StatusCode</param>
+    /// <returns>True if successful.</returns>
+    public Task<bool> Send(HttpStatusCode statusCode)
+    {
+      StatusCode = (int)statusCode;
       return Send();
     }
 
@@ -336,7 +347,7 @@ namespace Tfres
       {
         _response.ContentLength64 = ContentLength;
         _response.StatusCode = StatusCode;
-        _response.StatusDescription = GetStatusDescription(StatusCode);
+        _response.StatusDescription = HttpStatusHelper.GetStatusMessage(StatusCode);
         _response.SendChunked = true;
         _response.AddHeader("Access-Control-Allow-Origin", "*");
         _response.ContentType = ContentType;
@@ -354,43 +365,6 @@ namespace Tfres
       }
 
       _headersSent = true;
-    }
-
-    private string GetStatusDescription(int statusCode)
-    {
-      switch (statusCode)
-      {
-        case 200:
-          return "OK";
-        case 201:
-          return "Created";
-        case 301:
-          return "Moved Permanently";
-        case 302:
-          return "Moved Temporarily";
-        case 304:
-          return "Not Modified";
-        case 400:
-          return "Bad Request";
-        case 401:
-          return "Unauthorized";
-        case 403:
-          return "Forbidden";
-        case 404:
-          return "Not Found";
-        case 405:
-          return "Method Not Allowed";
-        case 429:
-          return "Too Many Requests";
-        case 500:
-          return "Internal Server Error";
-        case 501:
-          return "Not Implemented";
-        case 503:
-          return "Service Unavailable";
-        default:
-          return "Unknown Status";
-      }
     }
 
     private byte[] PackageChunk(byte[] chunk)
