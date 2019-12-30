@@ -9,6 +9,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TFRES.Core", "TFRES.Core\TF
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TFRES.DotNetStandard", "TFRES.DotNetStandard\TFRES.DotNetStandard.csproj", "{641381C0-913B-4F07-BAE7-EACBBBCA33D6}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{6402B78A-59BA-4052-AEB4-5F08B7F97018}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES.Test.SimpleServer", "Tests\TFRES.Test.SimpleServer\TFRES.Test.SimpleServer.csproj", "{DFE76EFA-EAA4-4B30-9ACF-6BCC4D14AD42}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -27,9 +31,16 @@ Global
 		{641381C0-913B-4F07-BAE7-EACBBBCA33D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{641381C0-913B-4F07-BAE7-EACBBBCA33D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{641381C0-913B-4F07-BAE7-EACBBBCA33D6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DFE76EFA-EAA4-4B30-9ACF-6BCC4D14AD42}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DFE76EFA-EAA4-4B30-9ACF-6BCC4D14AD42}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DFE76EFA-EAA4-4B30-9ACF-6BCC4D14AD42}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DFE76EFA-EAA4-4B30-9ACF-6BCC4D14AD42}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DFE76EFA-EAA4-4B30-9ACF-6BCC4D14AD42} = {6402B78A-59BA-4052-AEB4-5F08B7F97018}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A8B853E1-E8A1-427E-99A2-2952144A28E9}

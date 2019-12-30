@@ -144,14 +144,8 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public Task<bool> Send(object obj)
     {
-      using (var ms = new MemoryStream())
-      using (var wr = new StreamWriter(ms))
-      {
-        var serializer = new JsonSerializer();
-        serializer.Serialize(wr, obj);
-        ms.Seek(0, SeekOrigin.Begin);
+      using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj))))
         return Send(ms.Length, ms);
-      }
     }
 
     /*
