@@ -18,6 +18,8 @@
     <Compile Include="..\TefresWebserver\HttpContext.cs" Link="HttpContext.cs" />
     <Compile Include="..\TefresWebserver\HttpRequest.cs" Link="HttpRequest.cs" />
     <Compile Include="..\TefresWebserver\HttpResponse.cs" Link="HttpResponse.cs" />
+    <Compile Include="..\TefresWebserver\HttpStatus.cs" Link="HttpStatus.cs" />
+    <Compile Include="..\TefresWebserver\HttpStatusHelper.cs" Link="HttpStatusHelper.cs" />
     <Compile Include="..\TefresWebserver\HttpVerb.cs" Link="HttpVerb.cs" />
     <Compile Include="..\TefresWebserver\MimeTypes.cs" Link="MimeTypes.cs" />
     <Compile Include="..\TefresWebserver\OpenApiHelper.cs" Link="OpenApiHelper.cs" />
