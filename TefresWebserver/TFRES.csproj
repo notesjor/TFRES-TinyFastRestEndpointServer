@@ -57,6 +57,7 @@
     <Compile Include="EndpointManager.cs" />
     <Compile Include="HttpContext.cs" />
     <Compile Include="HttpRequest.cs" />
+    <Compile Include="HttpRequestFile.cs" />
     <Compile Include="HttpResponse.cs" />
     <Compile Include="HttpStatus.cs" />
     <Compile Include="HttpStatusHelper.cs" />

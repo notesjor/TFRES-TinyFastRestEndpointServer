@@ -1095,6 +1095,66 @@ namespace Tfres
     /// </summary>
     public string GetDataAsString => Querystring;
 
+    /// <summary>
+    /// If a JavaScript/Webbrowser sends multiple files - you can read all files at once
+    /// </summary>
+    /// <param name="uploadLimit">Maximal complete size of all files</param>
+    /// <param name="encoding">Set file encoding</param>
+    public List<HttpRequestFile> GetUploadedFiles(int uploadLimit = int.MaxValue, Encoding encoding = null)
+    {
+      if (encoding == null)
+        encoding = Encoding.UTF8;
+
+      try
+      {
+        var res = new List<HttpRequestFile>();
+        HttpRequestFile current = null;
+
+        using (var reader = new StreamReader(Data))
+        {
+          string end = null;
+          while (!reader.EndOfStream)
+          {
+            var line = reader.ReadLine();
+            if (end == null) 
+              end = line;
+
+            if (line.StartsWith(end))
+            {
+              if (current != null)
+              {
+                current.Finalize(encoding);
+                res.Add(current);
+              }
+
+              // Checking EndOfStream seems to be nasty and redundant
+              // But: works well with different browser implementations and nasty clients.
+              if (reader.EndOfStream)
+                break;
+              var head1 = reader.ReadLine();
+              if (reader.EndOfStream)
+                break;
+              var head2 = reader.ReadLine();
+              if (reader.EndOfStream)
+                break;
+
+              current = new HttpRequestFile(head1, head2);
+              reader.ReadLine();
+              continue;
+            }
+
+            current?.AddLine(line);
+          }
+        }
+
+        return res;
+      }
+      catch
+      {
+        return null;
+      }
+    }
+
     #endregion
 
     #region Private-Methods
