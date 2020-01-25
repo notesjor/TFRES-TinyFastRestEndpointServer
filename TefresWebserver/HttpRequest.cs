@@ -22,6 +22,12 @@ namespace Tfres
   /// </summary>
   public class HttpRequest
   {
+    #region Private Fields
+
+    [JsonIgnore] private string _postData = null;
+
+    #endregion
+
     #region Public-Members
 
     /// <summary>
@@ -184,7 +190,7 @@ namespace Tfres
     {
       #region Check-for-Null-Values
 
-      if (ctx         == null) throw new ArgumentNullException(nameof(ctx));
+      if (ctx == null) throw new ArgumentNullException(nameof(ctx));
       if (ctx.Request == null) throw new ArgumentNullException(nameof(ctx.Request));
 
       #endregion
@@ -207,7 +213,7 @@ namespace Tfres
       SourcePort = ctx.Request.RemoteEndPoint.Port;
       DestIp = ctx.Request.LocalEndPoint.Address.ToString();
       DestPort = ctx.Request.LocalEndPoint.Port;
-      Verb = (HttpVerb) Enum.Parse(typeof(HttpVerb), ctx.Request.HttpMethod, true);
+      Verb = (HttpVerb)Enum.Parse(typeof(HttpVerb), ctx.Request.HttpMethod, true);
       FullUrl = string.Copy(ctx.Request.Url.ToString().Trim());
       RawUrlWithQuery = string.Copy(ctx.Request.RawUrl.Trim());
       RawUrlWithoutQuery = string.Copy(ctx.Request.RawUrl.Trim());
@@ -246,9 +252,9 @@ namespace Tfres
             continue;
           }
 
-          if (position                       == 0 &&
+          if (position == 0 &&
               string.Compare(tempString, "") == 0 &&
-              c                              == '/')
+              c == '/')
             // skip the first slash
             continue;
 
@@ -538,7 +544,7 @@ namespace Tfres
           if (read > 0)
           {
             ret.Data.Write(buffer, 0, read);
-            bytesRead = bytesRead           + read;
+            bytesRead = bytesRead + read;
             bytesRemaining = bytesRemaining - read;
 
             // reduce buffer size if number of bytes remaining is
@@ -549,7 +555,7 @@ namespace Tfres
 
             // check if read fully
             if (bytesRemaining == 0) break;
-            if (bytesRead      == ret.ContentLength) break;
+            if (bytesRead == ret.ContentLength) break;
           }
           else
           {
@@ -688,7 +694,7 @@ namespace Tfres
           if (read > 0)
           {
             ret.Data.Write(buffer, 0, read);
-            bytesRead = bytesRead           + read;
+            bytesRead = bytesRead + read;
             bytesRemaining = bytesRemaining - read;
 
             // reduce buffer size if number of bytes remaining is
@@ -699,7 +705,7 @@ namespace Tfres
 
             // check if read fully
             if (bytesRemaining == 0) break;
-            if (bytesRead      == ret.ContentLength) break;
+            if (bytesRead == ret.ContentLength) break;
           }
           else
           {
@@ -840,7 +846,7 @@ namespace Tfres
           if (read > 0)
           {
             ret.Data.Write(buffer, 0, read);
-            bytesRead = bytesRead           + read;
+            bytesRead = bytesRead + read;
             bytesRemaining = bytesRemaining - read;
 
             // reduce buffer size if number of bytes remaining is
@@ -851,7 +857,7 @@ namespace Tfres
 
             // check if read fully
             if (bytesRemaining == 0) break;
-            if (bytesRead      == ret.ContentLength) break;
+            if (bytesRead == ret.ContentLength) break;
           }
           else
           {
@@ -890,14 +896,14 @@ namespace Tfres
 
       ret += "--- HTTP Request ---" + Environment.NewLine;
       ret += TimestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " " + SourceIp + ":" + SourcePort + " to " + DestIp + ":" +
-             DestPort                                     + Environment.NewLine;
-      ret += "  " + Verb + " " + RawUrlWithoutQuery + " " + ProtocolVersion    + Environment.NewLine;
-      ret += "  Full URL    : " + FullUrl                                        + Environment.NewLine;
-      ret += "  Raw URL     : " + RawUrlWithoutQuery                             + Environment.NewLine;
-      ret += "  Querystring : " + Querystring                                    + Environment.NewLine;
-      ret += "  Useragent   : " + Useragent + " (Keepalive " + Keepalive + ")"   + Environment.NewLine;
+             DestPort + Environment.NewLine;
+      ret += "  " + Verb + " " + RawUrlWithoutQuery + " " + ProtocolVersion + Environment.NewLine;
+      ret += "  Full URL    : " + FullUrl + Environment.NewLine;
+      ret += "  Raw URL     : " + RawUrlWithoutQuery + Environment.NewLine;
+      ret += "  Querystring : " + Querystring + Environment.NewLine;
+      ret += "  Useragent   : " + Useragent + " (Keepalive " + Keepalive + ")" + Environment.NewLine;
       ret += "  Content     : " + ContentType + " (" + ContentLength + " bytes)" + Environment.NewLine;
-      ret += "  Destination : " + DestHostname + ":" + DestHostPort              + Environment.NewLine;
+      ret += "  Destination : " + DestHostname + ":" + DestHostPort + Environment.NewLine;
 
       if (Headers != null && Headers.Count > 0)
       {
@@ -967,7 +973,7 @@ namespace Tfres
 
             if (lenStr.Contains(";"))
             {
-              var lenStrParts = lenStr.Split(new[] {';'}, 2);
+              var lenStrParts = lenStr.Split(new[] { ';' }, 2);
 
               if (lenStrParts.Length == 2) chunk.Metadata = lenStrParts[1];
             }
@@ -1037,14 +1043,16 @@ namespace Tfres
       return JsonConvert.DeserializeObject<T>(PostDataAsString);
     }
 
+
     public string PostDataAsString
     {
       get
       {
-        using (var reader = new StreamReader(Data, Encoding.UTF8))
-        {
-          return reader.ReadToEnd();
-        }
+        if (_postData == null)
+          using (var reader = new StreamReader(Data, Encoding.UTF8))
+            _postData = reader.ReadToEnd();
+
+        return _postData;
       }
     }
 
@@ -1116,7 +1124,7 @@ namespace Tfres
           while (!reader.EndOfStream)
           {
             var line = reader.ReadLine();
-            if (end == null) 
+            if (end == null)
               end = line;
 
             if (line.StartsWith(end))
@@ -1181,7 +1189,7 @@ namespace Tfres
       #region Convert-to-String-List
 
       var str = Encoding.UTF8.GetString(bytes);
-      var headers = str.Split(new[] {"\r\n", "\n"}, StringSplitOptions.RemoveEmptyEntries);
+      var headers = str.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
 
       #endregion
 
@@ -1197,7 +1205,7 @@ namespace Tfres
             throw new
               ArgumentException("Request line does not contain at least three parts (method, raw URL, protocol/version).");
 
-          ret.Verb = (HttpVerb) Enum.Parse(typeof(HttpVerb), requestLine[0], true);
+          ret.Verb = (HttpVerb)Enum.Parse(typeof(HttpVerb), requestLine[0], true);
           ret.FullUrl = requestLine[1];
           ret.ProtocolVersion = requestLine[2];
           ret.RawUrlWithQuery = ret.FullUrl;
