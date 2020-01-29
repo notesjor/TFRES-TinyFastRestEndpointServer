@@ -121,11 +121,6 @@
               The HTTP response that will be sent.  This object is preconstructed on your behalf and can be modified directly.
             </summary>
         </member>
-        <member name="P:Tfres.HttpContext.StreamBufferSize">
-            <summary>
-              Buffer size to use while writing the response from a supplied stream.
-            </summary>
-        </member>
         <member name="M:Tfres.HttpContext.GetData(System.Boolean)">
             <summary>
               Return Data send as GET-Parameter
@@ -341,6 +336,13 @@
               The querystring attached to the URL.
             </summary>
         </member>
+        <member name="M:Tfres.HttpRequest.GetUploadedFiles(System.Int32,System.Text.Encoding)">
+            <summary>
+            If a JavaScript/Webbrowser sends multiple files - you can read all files at once
+            </summary>
+            <param name="uploadLimit">Maximal complete size of all files</param>
+            <param name="encoding">Set file encoding</param>
+        </member>
         <member name="T:Tfres.HttpResponse">
             <summary>
               Response to an HTTP request.
@@ -366,11 +368,6 @@
               The length of the supplied response data.
             </summary>
         </member>
-        <member name="P:Tfres.HttpResponse.ChunkedTransfer">
-            <summary>
-              Indicates whether or not chunked transfer encoding should be indicated in the response.
-            </summary>
-        </member>
         <member name="M:Tfres.HttpResponse.#ctor">
             <summary>
               Instantiate the object.
@@ -382,11 +379,32 @@
             </summary>
             <returns>String-formatted, human-readable copy of the HttpResponse instance.</returns>
         </member>
+        <member name="M:Tfres.HttpResponse.Send">
+            <summary>
+              Send headers and no data to the requestor and terminate the connection.
+            </summary>
+            <returns>True if successful.</returns>
+        </member>
         <member name="M:Tfres.HttpResponse.Send(System.Int32)">
             <summary>
             Send headers (statusCode) and no data to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Net.HttpStatusCode)">
+            <summary>
+            Send headers (statusCode) and no data to the requestor and terminate the connection.
+            </summary>
+            <param name="statusCode">StatusCode</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Net.HttpStatusCode,System.String)">
+            <summary>
+            Send headers (statusCode) and a error message to the requestor and terminate the connection.
+            </summary>
+            <param name="statusCode">StatusCode</param>
+            <param name="errorMessage">Plaintext error message</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Int32,System.String)">
@@ -404,32 +422,12 @@
             <param name="obj">Object.</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:Tfres.HttpResponse.Send">
-            <summary>
-              Send headers and no data to the requestor and terminate the connection.
-            </summary>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:Tfres.HttpResponse.Send(System.Int64)">
-            <summary>
-              Send headers with a specified content length and no data to the requestor and terminate the connection.  Useful for
-              HEAD requests where the content length must be set.
-            </summary>
-            <returns>True if successful.</returns>
-        </member>
         <member name="M:Tfres.HttpResponse.Send(System.String,System.String)">
             <summary>
               Send headers and data to the requestor and terminate the connection.
             </summary>
+            <param name="data">Data.</param>
             <param name="mimeType">Force a special MIME-Type</param>
-            <param name="data">Data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:Tfres.HttpResponse.Send(System.String)">
-            <summary>
-              Send headers and data to the requestor and terminate the connection.
-            </summary>
-            <param name="data">Data.</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Byte[])">
@@ -455,7 +453,23 @@
             <param name="chunk">Chunk of data.</param>
             <returns>True if successful.</returns>
         </member>
+        <member name="M:Tfres.HttpResponse.SendChunk(System.Byte[],System.Int32)">
+            <summary>
+              Send headers (if not already sent) and a chunk of data using chunked transfer-encoding, and keep the connection
+              in-tact.
+            </summary>
+            <param name="chunk">Chunk of data.</param>
+            <returns>True if successful.</returns>
+        </member>
         <member name="M:Tfres.HttpResponse.SendFinalChunk(System.Byte[])">
+            <summary>
+              Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
+              connection.
+            </summary>
+            <param name="chunk">Chunk of data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.SendFinalChunk(System.Byte[],System.Int32)">
             <summary>
               Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
               connection.
