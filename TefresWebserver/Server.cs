@@ -66,6 +66,11 @@ namespace Tfres
       _endpoints.Add(verb, path, handler);
     }
 
+    /// <summary>
+    /// Set a Timeout in seconds.
+    /// </summary>
+    public int Timeout { get; set; } = 0;
+
     #endregion
 
     #region Private-Members
@@ -200,11 +205,19 @@ namespace Tfres
               var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery);
               if (handler != null)
               {
-                handler(ctx).Wait(token);
-                return;
+                if (Timeout > 0)
+                  handler(ctx).Wait(Timeout * 1000, token);
+                else
+                  handler(ctx).Wait(token);
               }
-
-              _defaultRoute(ctx).Wait(token);
+              // ReSharper disable once RedundantIfElseBlock
+              else
+              {
+                if (Timeout > 0)
+                  _defaultRoute(ctx).Wait(Timeout * 1000, token);
+                else
+                  _defaultRoute(ctx).Wait(token);
+              }
 
               #endregion
             }
