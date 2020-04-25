@@ -284,7 +284,7 @@ namespace Tfres
     /// </summary>
     /// <param name="chunk">Chunk of data.</param>
     /// <returns>True if successful.</returns>
-    private async Task<bool> SendChunk(byte[] chunk, int length)
+    public async Task<bool> SendChunk(byte[] chunk, int length)
     {
       try
       {
