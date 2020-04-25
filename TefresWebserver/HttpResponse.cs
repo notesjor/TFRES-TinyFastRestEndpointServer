@@ -259,7 +259,7 @@ namespace Tfres
       }
       finally
       {
-        await SendFinalChunk(null, 0);
+        await SendFinalChunk();
       }
 
       return true;
@@ -305,14 +305,10 @@ namespace Tfres
     ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
     ///   connection.
     /// </summary>
-    /// <param name="chunk">Chunk of data.</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendFinalChunk(byte[] chunk)
+    public async Task<bool> SendFinalChunk()
     {
-      if (!_headersSent)
-        SendHeaders();
-
-      return await SendFinalChunk(chunk, chunk.Length);
+      return await SendFinalChunk(null, 0);
     }
 
     /// <summary>
@@ -321,10 +317,24 @@ namespace Tfres
     /// </summary>
     /// <param name="chunk">Chunk of data.</param>
     /// <returns>True if successful.</returns>
-    private async Task<bool> SendFinalChunk(byte[] chunk, int length)
+    public async Task<bool> SendFinalChunk(byte[] chunk)
+    {
+      return await SendFinalChunk(chunk, chunk?.Length ?? 0);
+    }
+
+    /// <summary>
+    ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
+    ///   connection.
+    /// </summary>
+    /// <param name="chunk">Chunk of data.</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> SendFinalChunk(byte[] chunk, int length)
     {
       try
       {
+        if (!_headersSent)
+          SendHeaders();
+
         if (chunk != null && length > 0) await _outputStream.WriteAsync(chunk, 0, length);
 
         var endChunk = new byte[0];
