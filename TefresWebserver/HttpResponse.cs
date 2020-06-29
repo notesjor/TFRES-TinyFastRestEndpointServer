@@ -140,6 +140,7 @@ namespace Tfres
     /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
     /// <returns>True if successful.</returns>
+    [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
     public Task Send(HttpStatusCode statusCode, string errorMessage)
     {
       return Send((int) statusCode, errorMessage);
@@ -150,13 +151,45 @@ namespace Tfres
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
+    /// <param name="errorCode">Unique error Code</param>
+    /// /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
     /// <returns>True if successful.</returns>
+    public Task Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl)
+    {
+      return Send((int)statusCode, errorMessage, errorCode, helpUrl);
+    }
+
+    /// <summary>
+    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="statusCode">StatusCode</param>
+    /// <param name="errorMessage">Plaintext error message</param>
+    /// <returns>True if successful.</returns>
+    [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
     public Task<bool> Send(int statusCode, string errorMessage)
     {
       StatusCode = statusCode;
-      ContentType = "text/plain";
-      using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(errorMessage)))
-        return Send(ms.Length, ms);
+      return Send(Encoding.UTF8.GetBytes(errorMessage), "text/plain");
+    }
+
+    /// <summary>
+    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="statusCode">StatusCode</param>
+    /// <param name="errorMessage">Plaintext error message</param>
+    /// <param name="errorCode">Unique error Code</param>
+    /// /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
+    /// <returns>True if successful.</returns>
+    public Task<bool> Send(int statusCode, string errorMessage, int errorCode, string helpUrl)
+    {
+      StatusCode = statusCode;
+      return Send(new ErrorInfoMessage
+      {
+        ErrorCode = errorCode,
+        ErrorHelpUrl = helpUrl,
+        ErrorMessage = errorMessage,
+        HttpStatusCode = statusCode
+      });
     }
 
     /// <summary>
@@ -164,33 +197,8 @@ namespace Tfres
     /// </summary>
     /// <param name="obj">Object.</param>
     /// <returns>True if successful.</returns>
-    public Task<bool> Send(object obj)
-    {
-      using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj))))
-        return Send(ms.Length, ms);
-    }
-
-    /*
-    /// <summary>
-    ///   Send headers with a specified content length and no data to the requestor and terminate the connection.  Useful for
-    ///   HEAD requests where the content length must be set.
-    /// </summary>
-    /// <returns>True if successful.</returns>
-    public async Task<bool> Send(long contentLength)
-    {
-      if (ChunkedTransfer)
-        throw new
-          IOException("Response is configured to use chunked transfer-encoding.  Use SendChunk() and SendFinalChunk().");
-      ContentLength = contentLength;
-      if (!_headersSent) SendHeaders();
-
-      await _outputStream.FlushAsync();
-      _outputStream.Close();
-
-      _response?.Close();
-      return true;
-    }
-    */
+    public Task<bool> Send(object obj) 
+      => Send(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj)), "application/json");
 
     /// <summary>
     ///   Send headers and data to the requestor and terminate the connection.
@@ -201,16 +209,19 @@ namespace Tfres
     public async Task<bool> Send(string data, string mimeType = "application/json")
     {
       ContentType = mimeType;
-      return await Send(Encoding.UTF8.GetBytes(data));
+      return await Send(Encoding.UTF8.GetBytes(data), mimeType);
     }
 
     /// <summary>
     ///   Send headers and data to the requestor and terminate the connection.
     /// </summary>
     /// <param name="data">Data.</param>
+    /// <param name="mimeType">Force a special MIME-Type</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> Send(byte[] data)
+    public async Task<bool> Send(byte[] data, string mimeType)
     {
+      ContentType = mimeType;
+
       try
       {
         using (var ms = new MemoryStream(data))
