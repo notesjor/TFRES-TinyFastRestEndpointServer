@@ -9,78 +9,72 @@ A tiny fast REST-Server written in C# async.
 ## Example using Routes
 ```
   using System;
-  using Newtonsoft.Json;
-  using Tfres;
-  
-  namespace Application
+using System.IO;
+using System.Net;
+using System.Threading.Tasks;
+using Tfres;
+
+namespace TFRES.Test.SimpleServer
+{
+  class Program
   {
-    static class Program
+    static void Main(string[] args)
     {
-      static void Main(string[] args)
-      {
-        Server s = new Server("127.0.0.1", 9000, DefaultRoute);
-  
-        // add static routes
-        s.AddEndpoint(HttpVerb.GET, "/helloWorld/", GetHelloRoute);
-        s.AddEndpoint(HttpVerb.GET, "/jsonObj/", GetJsonObjRoute);
-        s.AddEndpoint(HttpVerb.POST, "/sayHello/", PostSayHello);
-	s.AddEndpoint(HttpVerb.GET, "/download/", GetBigFileStream);
-  
-        Console.WriteLine("Press ENTER to exit");
-        Console.ReadLine();
-      }
-  
-      static Task DefaultRoute(HttpContext ctx)
-        => ctx.Response.Send(200); // send only HTTP-StatusCode
-  
-      static Task GetHelloRoute(HttpContext ctx)
-        => ctx.Response.Send(200, "Hello from the GET /hello static route!"); // send StatusCode and Text-Message
+      Console.Write("Start Server...");
+      // Starte Server lokal auf Port 9999
+      var server = new Server("127.0.0.1", 9999, (ctx) => ctx.Response.Send(200));
 
-      private static Task GetJsonObjRoute(HttpContext ctx)
-        => ctx.Response.Send(new Person { Name = "Jan", Animals = 1 }); // send an object JSON serialized
-      
-      static Task PostSayHello(HttpContext ctx)
-        => new HttpResponse(ctx, true, 200, null, "text/plain", $"Hello {ctx.PostData<Person>().Name}!");
-		
-      static Task GetBigFileStream(HttpContext ctx){
-        // Upload
-        if (ctx.Request.ChunkedTransfer)
-        {
-          bool finalChunk = false;
-          while (!finalChunk)
-          {
-            Chunk chunk = await ctx.Request.ReadChunk();
-            // work with chunk.Length and chunk.Data (byte[])
-            finalChunk = chunk.IsFinalChunk;
-          }
-        }
-        else
-        {
-          // read from ctx.Request.Data stream   
-        }
+      // Einfache Endpunkte mit direkter Antwort
+      server.AddEndpoint(HttpVerb.GET, "/hello", (ctx) => ctx.Response.Send("Hello World"));
+      server.AddEndpoint(HttpVerb.GET, "/user", (ctx) => ctx.Response.Send(new User { Name = ctx.Request.GetData()["name"] }));
 
-        // Download
-        var buffer = new byte[65536];
-        var size = 0;
-        using (var fs = new FileStream("download.mp4", FileMode.Open, FileAccess.Read)) // you need a download.mp4 file
-        {
-          size = fs.Read(buffer, 0, buffer.Length);
-          while (size > 0)
-          {
-            arg.Response.SendChunk(buffer).Wait();
-            size = fs.Read(buffer, 0, buffer.Length);
-          }
-          return arg.Response.SendFinalChunk(buffer);
-        }
-      }
+      // Post Endpunkt mit komplexer Antwort
+      server.AddEndpoint(HttpVerb.POST, "/check", AgeCheck);
+
+      // Post Endpunkt mit Stream Antwort
+      server.AddEndpoint(HttpVerb.GET, "/corpus", GetBigCorpusStream);
+
+      Console.WriteLine("ok!");
+      Console.ReadLine();
     }
-  
-    public class Person
+
+    private static Task AgeCheck(HttpContext ctx)
     {
-      public string Name { get; set; }
-      public int Animals { get; set; }
+      var user = ctx.PostData<User>(); // Automatisch Deserialisierung eines JSON-Objekts
+      if (user == null || string.IsNullOrEmpty(user.Name))
+        return ctx.Response.Send(HttpStatusCode.InternalServerError,
+                          "Nutzer darf nicht null sein und die Eigenschaft 'name' muss gesetzt sein.");
+
+      if (user.Age < 18)
+        return ctx.Response.Send(HttpStatusCode.InternalServerError,
+                                 "Nutzer muss mindestens 18 Jahre alt sein");
+
+      return ctx.Response.Send(HttpStatusCode.Accepted);
+    }
+
+    private static Task GetBigCorpusStream(HttpContext ctx)
+    {
+      var buffer = new byte[65536]; // Lese aus lokaler Datei 'corpus.cec6' mit einem 64KB Buffer
+      using (var fs = new FileStream("corpus.cec6", FileMode.Open, FileAccess.Read))
+      {
+        var size = fs.Read(buffer, 0, buffer.Length);
+        while (size > 0)
+        {
+          ctx.Response.SendChunk(buffer).Wait(); // Sende 'buffer' als Chunk via HTTP
+          size = fs.Read(buffer, 0, buffer.Length); // Lese nächsten 'buffer' ein
+        }
+        return ctx.Response.SendFinalChunk(buffer); // Schließe Verbindung.
+      }
     }
   }
+
+  [Serializable]
+  public class User
+  {
+    public string Name { get; set; }
+    public int Age { get; set; } = (new Random()).Next(18, 99);
+  }
+}
 ```
 
 ## Running under Mono
