@@ -150,6 +150,18 @@ namespace Tfres
     /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
+    /// <param name="content">Plaintext content</param>
+    /// <param name="mimeType">Content Mime-Type</param>
+    /// <returns>True if successful.</returns>
+    public Task Send(HttpStatusCode statusCode, string content, string mimeType)
+    {
+      return Send((int)statusCode, content, mimeType);
+    }
+
+    /// <summary>
+    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
     /// <param name="errorCode">Unique error Code</param>
     /// /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
@@ -170,6 +182,19 @@ namespace Tfres
     {
       StatusCode = statusCode;
       return Send(Encoding.UTF8.GetBytes(errorMessage), "text/plain");
+    }
+
+    /// <summary>
+    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="statusCode">StatusCode</param>
+    /// <param name="content">Plaintext content (utf-8)</param>
+    /// <param name="mimeType">Content Mime-Type</param>
+    /// <returns>True if successful.</returns>
+    public Task<bool> Send(int statusCode, string content, string mimeType)
+    {
+      StatusCode = statusCode;
+      return Send(Encoding.UTF8.GetBytes(content), mimeType);
     }
 
     /// <summary>
