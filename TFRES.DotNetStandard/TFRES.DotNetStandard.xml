@@ -407,12 +407,50 @@
             <param name="errorMessage">Plaintext error message</param>
             <returns>True if successful.</returns>
         </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Net.HttpStatusCode,System.String,System.String)">
+            <summary>
+            Send headers (statusCode) and a content to the requestor and terminate the connection.
+            </summary>
+            <param name="statusCode">StatusCode</param>
+            <param name="content">Plaintext content</param>
+            <param name="mimeType">Content Mime-Type</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Net.HttpStatusCode,System.String,System.Int32,System.String)">
+            <summary>
+            Send headers (statusCode) and a error message to the requestor and terminate the connection.
+            </summary>
+            <param name="statusCode">StatusCode</param>
+            <param name="errorMessage">Plaintext error message</param>
+            <param name="errorCode">Unique error Code</param>
+            /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
+            <returns>True if successful.</returns>
+        </member>
         <member name="M:Tfres.HttpResponse.Send(System.Int32,System.String)">
             <summary>
             Send headers (statusCode) and a error message to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <param name="errorMessage">Plaintext error message</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Int32,System.String,System.String)">
+            <summary>
+            Send headers (statusCode / mimeType) and a content to the requestor and terminate the connection.
+            </summary>
+            <param name="statusCode">StatusCode</param>
+            <param name="content">Plaintext content (utf-8)</param>
+            <param name="mimeType">Content Mime-Type</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.Send(System.Int32,System.String,System.Int32,System.String)">
+            <summary>
+            Send headers (statusCode) and a error message to the requestor and terminate the connection.
+            </summary>
+            <param name="statusCode">StatusCode</param>
+            <param name="errorMessage">Plaintext error message</param>
+            <param name="errorCode">Unique error Code</param>
+            /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Object)">
@@ -430,11 +468,20 @@
             <param name="mimeType">Force a special MIME-Type</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:Tfres.HttpResponse.Send(System.Byte[])">
+        <member name="M:Tfres.HttpResponse.Send(System.Byte[],System.String)">
             <summary>
               Send headers and data to the requestor and terminate the connection.
             </summary>
             <param name="data">Data.</param>
+            <param name="mimeType">Force a special MIME-Type</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.SendAsync(System.Byte[],System.String)">
+            <summary>
+              Send headers and data to the requestor and terminate the connection.
+            </summary>
+            <param name="data">Data.</param>
+            <param name="mimeType">Force a special MIME-Type</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Int64,System.IO.Stream)">
@@ -443,6 +490,15 @@
             </summary>
             <param name="contentLength">Number of bytes to send.</param>
             <param name="stream">Stream containing the data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.SendChunk(System.String,System.Text.Encoding)">
+            <summary>
+              Send headers (if not already sent) and a chunk of data using chunked transfer-encoding, and keep the connection
+              in-tact.
+            </summary>
+            <param name="chunk">Chunk of data.</param>
+            <param name="encoding">Chunk (string) encoding (default = UTF-8)</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.SendChunk(System.Byte[])">
@@ -459,6 +515,22 @@
               in-tact.
             </summary>
             <param name="chunk">Chunk of data.</param>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.SendFinalChunk">
+            <summary>
+              Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
+              connection.
+            </summary>
+            <returns>True if successful.</returns>
+        </member>
+        <member name="M:Tfres.HttpResponse.SendFinalChunk(System.String,System.Text.Encoding)">
+            <summary>
+              Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
+              connection.
+            </summary>
+            <param name="chunk">Chunk of data.</param>
+            <param name="encoding">Chunk (string) encoding (default: UTF-8)</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.SendFinalChunk(System.Byte[])">
@@ -521,6 +593,11 @@
             <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
             <param name="path">The raw URL to match, i.e. /foo/bar.</param>
             <param name="handler">The method to which control should be passed.</param>
+        </member>
+        <member name="P:Tfres.Server.Timeout">
+            <summary>
+            Set a Timeout in seconds.
+            </summary>
         </member>
         <member name="M:Tfres.Server.#ctor(System.String,System.Int32,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
             <summary>
