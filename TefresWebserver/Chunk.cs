@@ -18,7 +18,7 @@
     /// <summary>
     ///   Length of the data.
     /// </summary>
-    public int Length { get; set; }
+    public int Length { get; set; } = 0;
 
     /// <summary>
     ///   Any additional metadata that appears on the length line after the length hex value and semicolon.
