@@ -37,7 +37,7 @@ namespace Tfres
     /// <summary>
     ///   The length of the supplied response data.
     /// </summary>
-    public long ContentLength { get; set; }
+    public long ContentLength { get; set; } = 0;
 
     #endregion
 
@@ -143,7 +143,7 @@ namespace Tfres
     [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
     public Task Send(HttpStatusCode statusCode, string errorMessage)
     {
-      return Send((int) statusCode, errorMessage);
+      return Send((int)statusCode, errorMessage);
     }
 
     /// <summary>
@@ -222,7 +222,7 @@ namespace Tfres
     /// </summary>
     /// <param name="obj">Object.</param>
     /// <returns>True if successful.</returns>
-    public Task<bool> Send(object obj) 
+    public Task<bool> Send(object obj)
       => SendAsync(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj)), "application/json");
 
     /// <summary>
@@ -231,7 +231,7 @@ namespace Tfres
     /// <param name="data">Data.</param>
     /// <param name="mimeType">Force a special MIME-Type</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> Send(string data, string mimeType = "application/json") 
+    public async Task<bool> Send(string data, string mimeType = "application/json")
       => await SendAsync(Encoding.UTF8.GetBytes(data), mimeType);
 
     /// <summary>
@@ -249,14 +249,35 @@ namespace Tfres
     /// <param name="data">Data.</param>
     /// <param name="mimeType">Force a special MIME-Type</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendAsync(byte[] data, string mimeType)
+    private async Task<bool> SendAsync(byte[] data, string mimeType)
+    {
+      try
+      {
+        using (var ms = new MemoryStream(data))
+          await Send(ms, mimeType);
+        return true;
+      }
+      catch
+      {
+        // do nothing
+        return false;
+      }
+    }
+
+    /// <summary>
+    ///   Send headers and data to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="path">Path to file</param>
+    /// <param name="mimeType">Force a special MIME-Type</param>
+    /// <returns>True if successful.</returns>
+    public async Task<bool> SendFile(string path, string mimeType = "application/octet-stream")
     {
       ContentType = mimeType;
 
       try
       {
-        using (var ms = new MemoryStream(data))
-          await Send(data.Length, ms);
+        using (var ms = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
+          await Send(ms, mimeType);
         return true;
       }
       catch
@@ -271,28 +292,27 @@ namespace Tfres
     /// <summary>
     ///   Send headers and data to the requestor and terminate.
     /// </summary>
-    /// <param name="contentLength">Number of bytes to send.</param>
     /// <param name="stream">Stream containing the data.</param>
+    /// <param name="mimeType"></param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> Send(long contentLength, Stream stream)
+    public async Task<bool> Send(Stream stream, string mimeType)
     {
+      ContentType = mimeType;
+
       if (!_headersSent)
         SendHeaders();
-      ContentLength = contentLength;
 
       try
       {
-        if (stream != null && stream.CanRead && contentLength > 0)
+        var buffer = new byte[_bufferSize];
+
+        int read;
+        do
         {
-          var buffer = new byte[_bufferSize];
-          var read = 0;
-          do
-          {
-            read = stream.Read(buffer, 0, buffer.Length);
-            if (read > 0)
-              await SendChunk(buffer, read);
-          } while (read != 0);
-        }
+          read = stream.Read(buffer, 0, buffer.Length);
+          if (read > 0)
+            await SendChunk(buffer, read);
+        } while (read != 0);
       }
       catch
       {
@@ -326,9 +346,12 @@ namespace Tfres
     ///   in-tact.
     /// </summary>
     /// <param name="chunk">Chunk of data.</param>
+    /// <param name="mimeType">Force a special MIME-Type</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendChunk(byte[] chunk)
+    public async Task<bool> SendChunk(byte[] chunk, string mimeType = "application/octet-stream")
     {
+      ContentType = mimeType;
+
       if (!_headersSent)
         SendHeaders();
       return await SendChunk(chunk, chunk.Length);
@@ -342,15 +365,19 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public async Task<bool> SendChunk(byte[] chunk, int length)
     {
+      if (!_headersSent)
+        SendHeaders();
+
+      if (chunk != null && chunk.Length > 0)
+        ContentLength += chunk.Length;
+
       try
       {
-        if (chunk == null || chunk.Length < 1)
-          chunk = new byte[0];
-        _outputStream.Write(chunk, 0, length);
+        if (chunk == null || chunk.Length < 1) chunk = Array.Empty<byte>();
+        await _outputStream.WriteAsync(chunk, 0, length).ConfigureAwait(false);
       }
-      catch
+      catch (Exception)
       {
-        // do nothing
         return false;
       }
 
@@ -398,30 +425,31 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public async Task<bool> SendFinalChunk(byte[] chunk, int length)
     {
+      if (!_headersSent)
+        SendHeaders();
+
+      if (chunk != null && chunk.Length > 0)
+        ContentLength += chunk.Length;
+
       try
       {
-        if (!_headersSent)
-          SendHeaders();
+        if (chunk != null && chunk.Length > 0)
+          await _outputStream.WriteAsync(chunk, 0, length).ConfigureAwait(false);
 
-        if (chunk != null && length > 0) await _outputStream.WriteAsync(chunk, 0, length);
+        var endChunk = Array.Empty<byte>();
+        await _outputStream.WriteAsync(endChunk, 0, endChunk.Length).ConfigureAwait(false);
 
-        var endChunk = new byte[0];
-        await _outputStream.WriteAsync(endChunk, 0, endChunk.Length);
-      }
-      catch
-      {
-        // do nothing
-        return false;
-      }
-      finally
-      {
-        await _outputStream.FlushAsync();
+        await _outputStream.FlushAsync().ConfigureAwait(false);
         _outputStream.Close();
 
         _response?.Close();
-      }
 
-      return true;
+        return true;
+      }
+      catch (Exception)
+      {
+        return false;
+      }
     }
 
     #endregion
