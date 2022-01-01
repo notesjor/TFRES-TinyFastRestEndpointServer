@@ -67,10 +67,7 @@ namespace Tfres
       var r = Get(method, path);
       if (r == null) return;
 
-      lock (_lock)
-      {
-        _routes.Remove(r);
-      }
+      lock (_lock) _routes.Remove(r);
     }
 
     /// <summary>
@@ -87,10 +84,7 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_lock)
-      {
-        return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path);
-      }
+      lock (_lock) return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path);
     }
 
     /// <summary>
@@ -107,10 +101,7 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_lock)
-      {
-        return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path) != null;
-      }
+      lock (_lock) return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path) != null;
     }
 
     /// <summary>
@@ -127,10 +118,7 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_lock)
-      {
-        return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path)?.Handler;
-      }
+      lock (_lock) return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path)?.Handler;
     }
 
     #endregion
@@ -147,20 +135,14 @@ namespace Tfres
 
       if (Exists(route.Verb, route.Path)) return;
 
-      lock (_lock)
-      {
-        _routes.Add(route);
-      }
+      lock (_lock) _routes.Add(route);
     }
 
     private void Remove(Endpoint route)
     {
       if (route == null) throw new ArgumentNullException(nameof(route));
 
-      lock (_lock)
-      {
-        _routes.Remove(route);
-      }
+      lock (_lock) _routes.Remove(route);
     }
 
     #endregion

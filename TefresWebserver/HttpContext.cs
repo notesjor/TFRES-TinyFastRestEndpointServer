@@ -13,16 +13,6 @@ namespace Tfres
   /// </summary>
   public class HttpContext
   {
-    /// <summary>
-    ///   The HTTP request that was received.
-    /// </summary>
-    public HttpRequest Request { get; set; }
-
-    /// <summary>
-    ///   The HTTP response that will be sent.  This object is preconstructed on your behalf and can be modified directly.
-    /// </summary>
-    public HttpResponse Response { get; set; }
-
     private HttpContext()
     {
     }
@@ -32,6 +22,18 @@ namespace Tfres
       Request = new HttpRequest(ctx);
       Response = new HttpResponse(Request, ctx ?? throw new ArgumentNullException(nameof(ctx)));
     }
+
+    public string PostDataAsString => Request.PostDataAsString;
+
+    /// <summary>
+    ///   The HTTP request that was received.
+    /// </summary>
+    public HttpRequest Request { get; set; }
+
+    /// <summary>
+    ///   The HTTP response that will be sent.  This object is preconstructed on your behalf and can be modified directly.
+    /// </summary>
+    public HttpResponse Response { get; set; }
 
     /// <summary>
     ///   Return Data send as GET-Parameter
@@ -44,7 +46,5 @@ namespace Tfres
     /// </summary>
     /// <returns>Post-Data as T</returns>
     public T PostData<T>() => Request.PostData<T>();
-
-    public string PostDataAsString => Request.PostDataAsString;
   }
 }

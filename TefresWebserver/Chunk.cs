@@ -5,6 +5,10 @@
   /// </summary>
   public class Chunk
   {
+    internal Chunk()
+    {
+    }
+
     /// <summary>
     ///   Data.
     /// </summary>
@@ -24,9 +28,5 @@
     ///   Any additional metadata that appears on the length line after the length hex value and semicolon.
     /// </summary>
     public string Metadata { get; set; } = null;
-
-    internal Chunk()
-    {
-    }
   }
 }

@@ -1,13 +1,15 @@
-﻿using System;
-using System.IO;
-using System.Net.Mime;
+﻿#region
+
+using System;
 using System.Text;
+
+#endregion
 
 namespace Tfres
 {
   public class HttpRequestFile
   {
-    private StringBuilder _stb = new StringBuilder();
+    private readonly StringBuilder _stb = new StringBuilder();
 
     public HttpRequestFile(string h1, string h2)
     {
@@ -29,10 +31,10 @@ namespace Tfres
     }
 
     public string ContentDisposition { get; set; }
-    public string Name { get; set; }
-    public string Filename { get; set; }
     public string ContentType { get; set; }
     public byte[] Data { get; set; }
+    public string Filename { get; set; }
+    public string Name { get; set; }
 
     internal void AddLine(string line) => _stb.AppendLine(line);
 

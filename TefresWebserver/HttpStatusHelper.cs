@@ -1,14 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Tfres
+﻿namespace Tfres
 {
   public static class HttpStatusHelper
   {
-    public static string GetStatusMessage(int status) => GetStatusMessage((HttpStatus) status);
+    public static string GetStatusMessage(int status) => GetStatusMessage((HttpStatus)status);
 
     public static string GetStatusMessage(HttpStatus status)
     {

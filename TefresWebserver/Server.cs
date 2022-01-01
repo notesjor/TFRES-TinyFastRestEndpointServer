@@ -67,7 +67,7 @@ namespace Tfres
     }
 
     /// <summary>
-    /// Set a Timeout in seconds.
+    ///   Set a Timeout in seconds.
     /// </summary>
     public int Timeout { get; set; } = 0;
 
@@ -130,7 +130,7 @@ namespace Tfres
     /// </param>
     public Server(List<string> hostnames, int port, Func<HttpContext, Task> defaultRoute)
     {
-      if (port < 1) throw new ArgumentOutOfRangeException(nameof(port));
+      if (port         < 1) throw new ArgumentOutOfRangeException(nameof(port));
       if (defaultRoute == null) throw new ArgumentNullException(nameof(defaultRoute));
 
       _httpListener = new HttpListener();

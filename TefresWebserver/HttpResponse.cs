@@ -37,7 +37,7 @@ namespace Tfres
     /// <summary>
     ///   The length of the supplied response data.
     /// </summary>
-    public long ContentLength { get; set; } = 0;
+    public long ContentLength { get; set; }
 
     #endregion
 
@@ -61,7 +61,7 @@ namespace Tfres
 
     internal HttpResponse(HttpRequest req, HttpListenerContext ctx)
     {
-      _request = req ?? throw new ArgumentNullException(nameof(req));
+      _request = req            ?? throw new ArgumentNullException(nameof(req));
       _response = ctx?.Response ?? throw new ArgumentNullException(nameof(ctx));
       _outputStream = _response.OutputStream;
     }
@@ -78,12 +78,12 @@ namespace Tfres
     {
       var ret = "";
 
-      ret += "--- HTTP Response ---" + Environment.NewLine;
-      ret += "  Status Code        : " + StatusCode + Environment.NewLine;
+      ret += "--- HTTP Response ---"   + Environment.NewLine;
+      ret += "  Status Code        : " + StatusCode                                    + Environment.NewLine;
       ret += "  Status Description : " + HttpStatusHelper.GetStatusMessage(StatusCode) + Environment.NewLine;
-      ret += "  Content            : " + ContentType + Environment.NewLine;
-      ret += "  Content Length     : " + ContentLength + " bytes" + Environment.NewLine;
-      ret += "  Chunked Transfer   : " + true + Environment.NewLine;
+      ret += "  Content            : " + ContentType                                   + Environment.NewLine;
+      ret += "  Content Length     : " + ContentLength                                 + " bytes" + Environment.NewLine;
+      ret += "  Chunked Transfer   : " + true                                          + Environment.NewLine;
       if (Headers != null && Headers.Count > 0)
       {
         ret += "  Headers            : " + Environment.NewLine;
@@ -113,7 +113,7 @@ namespace Tfres
     }
 
     /// <summary>
-    /// Send headers (statusCode) and no data to the requestor and terminate the connection.
+    ///   Send headers (statusCode) and no data to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <returns>True if successful.</returns>
@@ -124,7 +124,7 @@ namespace Tfres
     }
 
     /// <summary>
-    /// Send headers (statusCode) and no data to the requestor and terminate the connection.
+    ///   Send headers (statusCode) and no data to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <returns>True if successful.</returns>
@@ -135,44 +135,38 @@ namespace Tfres
     }
 
     /// <summary>
-    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    ///   Send headers (statusCode) and a error message to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
     /// <returns>True if successful.</returns>
     [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
-    public Task Send(HttpStatusCode statusCode, string errorMessage)
-    {
-      return Send((int)statusCode, errorMessage);
-    }
+    public Task Send(HttpStatusCode statusCode, string errorMessage) => Send((int)statusCode, errorMessage);
 
     /// <summary>
-    /// Send headers (statusCode) and a content to the requestor and terminate the connection.
+    ///   Send headers (statusCode) and a content to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="content">Plaintext content</param>
     /// <param name="mimeType">Content Mime-Type</param>
     /// <returns>True if successful.</returns>
-    public Task Send(HttpStatusCode statusCode, string content, string mimeType)
-    {
-      return Send((int)statusCode, content, mimeType);
-    }
+    public Task Send(HttpStatusCode statusCode, string content, string mimeType) =>
+      Send((int)statusCode, content, mimeType);
 
     /// <summary>
-    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    ///   Send headers (statusCode) and a error message to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
     /// <param name="errorCode">Unique error Code</param>
-    /// /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
+    /// ///
+    /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
     /// <returns>True if successful.</returns>
-    public Task Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl)
-    {
-      return Send((int)statusCode, errorMessage, errorCode, helpUrl);
-    }
+    public Task Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) =>
+      Send((int)statusCode, errorMessage, errorCode, helpUrl);
 
     /// <summary>
-    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    ///   Send headers (statusCode) and a error message to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
@@ -185,7 +179,7 @@ namespace Tfres
     }
 
     /// <summary>
-    /// Send headers (statusCode / mimeType) and a content to the requestor and terminate the connection.
+    ///   Send headers (statusCode / mimeType) and a content to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="content">Plaintext content (utf-8)</param>
@@ -198,12 +192,13 @@ namespace Tfres
     }
 
     /// <summary>
-    /// Send headers (statusCode) and a error message to the requestor and terminate the connection.
+    ///   Send headers (statusCode) and a error message to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
     /// <param name="errorCode">Unique error Code</param>
-    /// /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
+    /// ///
+    /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
     /// <returns>True if successful.</returns>
     public Task<bool> Send(int statusCode, string errorMessage, int errorCode, string helpUrl)
     {
@@ -389,10 +384,7 @@ namespace Tfres
     ///   connection.
     /// </summary>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendFinalChunk()
-    {
-      return await SendFinalChunk(null, 0);
-    }
+    public async Task<bool> SendFinalChunk() => await SendFinalChunk(null, 0);
 
     /// <summary>
     ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
@@ -401,10 +393,8 @@ namespace Tfres
     /// <param name="chunk">Chunk of data.</param>
     /// <param name="encoding">Chunk (string) encoding (default: UTF-8)</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendFinalChunk(string chunk, Encoding encoding = null)
-    {
-      return await SendFinalChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
-    }
+    public async Task<bool> SendFinalChunk(string chunk, Encoding encoding = null) =>
+      await SendFinalChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
 
     /// <summary>
     ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
@@ -412,10 +402,7 @@ namespace Tfres
     /// </summary>
     /// <param name="chunk">Chunk of data.</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendFinalChunk(byte[] chunk)
-    {
-      return await SendFinalChunk(chunk, chunk?.Length ?? 0);
-    }
+    public async Task<bool> SendFinalChunk(byte[] chunk) => await SendFinalChunk(chunk, chunk?.Length ?? 0);
 
     /// <summary>
     ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
