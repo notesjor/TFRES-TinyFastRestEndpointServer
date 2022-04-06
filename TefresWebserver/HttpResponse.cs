@@ -5,7 +5,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
-using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 #endregion
@@ -47,6 +46,7 @@ namespace Tfres
     private readonly HttpListenerResponse _response;
     private readonly Stream _outputStream;
     private bool _headersSent;
+    private readonly JsonSerializer _serializer;
 
     #endregion
 
@@ -59,11 +59,12 @@ namespace Tfres
     {
     }
 
-    internal HttpResponse(HttpRequest req, HttpListenerContext ctx)
+    internal HttpResponse(HttpRequest req, HttpListenerContext ctx, JsonSerializer serializer)
     {
       _request = req            ?? throw new ArgumentNullException(nameof(req));
       _response = ctx?.Response ?? throw new ArgumentNullException(nameof(ctx));
       _outputStream = _response.OutputStream;
+      _serializer = serializer;
     }
 
     #endregion
@@ -101,15 +102,14 @@ namespace Tfres
     ///   Send headers and no data to the requestor and terminate the connection.
     /// </summary>
     /// <returns>True if successful.</returns>
-    public async Task<bool> Send()
+    public void Send()
     {
       if (!_headersSent) SendHeaders();
 
-      await _outputStream.FlushAsync();
+      _outputStream.FlushAsync().Wait();
       _outputStream.Close();
 
       _response?.Close();
-      return true;
     }
 
     /// <summary>
@@ -117,10 +117,10 @@ namespace Tfres
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <returns>True if successful.</returns>
-    public Task<bool> Send(int statusCode)
+    public void Send(int statusCode)
     {
       StatusCode = statusCode;
-      return Send();
+      Send();
     }
 
     /// <summary>
@@ -128,10 +128,10 @@ namespace Tfres
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <returns>True if successful.</returns>
-    public Task<bool> Send(HttpStatusCode statusCode)
+    public void Send(HttpStatusCode statusCode)
     {
       StatusCode = (int)statusCode;
-      return Send();
+      Send();
     }
 
     /// <summary>
@@ -141,7 +141,7 @@ namespace Tfres
     /// <param name="errorMessage">Plaintext error message</param>
     /// <returns>True if successful.</returns>
     [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
-    public Task Send(HttpStatusCode statusCode, string errorMessage) 
+    public void Send(HttpStatusCode statusCode, string errorMessage) 
       => Send((int)statusCode, errorMessage);
 
     /// <summary>
@@ -151,7 +151,7 @@ namespace Tfres
     /// <param name="content">Plaintext content</param>
     /// <param name="mimeType">Content Mime-Type</param>
     /// <returns>True if successful.</returns>
-    public Task Send(HttpStatusCode statusCode, string content, string mimeType) 
+    public void Send(HttpStatusCode statusCode, string content, string mimeType) 
       => Send((int)statusCode, content, mimeType);
 
     /// <summary>
@@ -163,7 +163,7 @@ namespace Tfres
     /// ///
     /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
     /// <returns>True if successful.</returns>
-    public Task Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) 
+    public void Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) 
       => Send((int)statusCode, errorMessage, errorCode, helpUrl);
 
     /// <summary>
@@ -173,10 +173,10 @@ namespace Tfres
     /// <param name="errorMessage">Plaintext error message</param>
     /// <returns>True if successful.</returns>
     [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
-    public Task<bool> Send(int statusCode, string errorMessage)
+    public void Send(int statusCode, string errorMessage)
     {
       StatusCode = statusCode;
-      return SendAsync(errorMessage == null ? null : Encoding.UTF8.GetBytes(errorMessage), "text/plain");
+      Send(errorMessage == null ? null : Encoding.UTF8.GetBytes(errorMessage), "text/plain");
     }
 
     /// <summary>
@@ -186,10 +186,10 @@ namespace Tfres
     /// <param name="content">Plaintext content (utf-8)</param>
     /// <param name="mimeType">Content Mime-Type</param>
     /// <returns>True if successful.</returns>
-    public Task<bool> Send(int statusCode, string content, string mimeType)
+    public void Send(int statusCode, string content, string mimeType)
     {
       StatusCode = statusCode;
-      return SendAsync(content == null ? null : Encoding.UTF8.GetBytes(content), mimeType);
+      Send(content == null ? null : Encoding.UTF8.GetBytes(content), mimeType);
     }
 
     /// <summary>
@@ -201,10 +201,10 @@ namespace Tfres
     /// ///
     /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
     /// <returns>True if successful.</returns>
-    public Task<bool> Send(int statusCode, string errorMessage, int errorCode, string helpUrl)
+    public void Send(int statusCode, string errorMessage, int errorCode, string helpUrl)
     {
       StatusCode = statusCode;
-      return Send(new ErrorInfoMessage
+      Send(new ErrorInfoMessage
       {
         ErrorCode = errorCode,
         ErrorHelpUrl = helpUrl ?? "",
@@ -218,49 +218,42 @@ namespace Tfres
     /// </summary>
     /// <param name="obj">Object.</param>
     /// <returns>True if successful.</returns>
-    public Task<bool> Send(object obj)
-      => SendAsync(obj == null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj)), "application/json");
-
-    /// <summary>
-    ///   Send headers and data to the requestor and terminate the connection.
-    /// </summary>
-    /// <param name="data">Data.</param>
-    /// <param name="mimeType">Force a special MIME-Type</param>
-    /// <returns>True if successful.</returns>
-    public async Task<bool> Send(string data, string mimeType = "application/json")
-      => await SendAsync(data == null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(data), mimeType);
-
-    /// <summary>
-    ///   Send headers and data to the requestor and terminate the connection.
-    /// </summary>
-    /// <param name="data">Data.</param>
-    /// <param name="mimeType">Force a special MIME-Type</param>
-    /// <returns>True if successful.</returns>
-    public Task<bool> Send(byte[] data, string mimeType)
-      => SendAsync(data, mimeType);
-
-    /// <summary>
-    ///   Send headers and data to the requestor and terminate the connection.
-    /// </summary>
-    /// <param name="data">Data.</param>
-    /// <param name="mimeType">Force a special MIME-Type</param>
-    /// <returns>True if successful.</returns>
-    private async Task<bool> SendAsync(byte[] data, string mimeType)
+    public void Send(object obj)
     {
-      try
-      {
-        if (data == null)
-          data = Array.Empty<byte>();
+      if (obj == null)
+        Send();
 
-        using (var ms = new MemoryStream(data))
-          await Send(ms, mimeType);
-        return true;
-      }
-      catch
+      using (var ms = new MemoryStream())
       {
-        // do nothing
-        return false;
+        using (var writer = new StreamWriter(ms, Encoding.UTF8, 4096, true))
+          _serializer.Serialize(writer, obj);
+        ms.Seek(0, SeekOrigin.Begin);
+        Send(ms, "application/json");
       }
+    }
+
+    /// <summary>
+    ///   Send headers and data to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="data">Data.</param>
+    /// <param name="mimeType">Force a special MIME-Type</param>
+    /// <returns>True if successful.</returns>
+    public void Send(string data, string mimeType = "application/json")
+      => Send(data == null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(data), mimeType);
+
+    /// <summary>
+    ///   Send headers and data to the requestor and terminate the connection.
+    /// </summary>
+    /// <param name="data">Data.</param>
+    /// <param name="mimeType">Force a special MIME-Type</param>
+    /// <returns>True if successful.</returns>
+    public void Send(byte[] data, string mimeType)
+    {
+      if (data == null)
+        data = Array.Empty<byte>();
+
+      using (var ms = new MemoryStream(data))
+        Send(ms, mimeType);
     }
 
     /// <summary>
@@ -269,18 +262,18 @@ namespace Tfres
     /// <param name="path">Path to file</param>
     /// <param name="mimeType">Force a special MIME-Type</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendFile(string path, string mimeType = "application/octet-stream")
+    public void SendFile(string path, string mimeType = "application/octet-stream")
     {
       ContentType = mimeType;
 
       try
       {
         using (var ms = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
-          return await Send(ms, mimeType);
+          Send(ms, mimeType);
       }
       catch
       {
-        return await SendFinalChunk();
+        SendFinalChunk();
       }
     }
 
@@ -292,14 +285,13 @@ namespace Tfres
     /// <param name="stream">Stream containing the data.</param>
     /// <param name="mimeType"></param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> Send(Stream stream, string mimeType)
+    public void Send(Stream stream, string mimeType)
     {
       ContentType = mimeType;
 
       if (!_headersSent)
         SendHeaders();
 
-      bool success;
       try
       {
         var buffer = new byte[_bufferSize];
@@ -309,20 +301,15 @@ namespace Tfres
         {
           read = stream.Read(buffer, 0, buffer.Length);
           if (read > 0)
-            await SendChunk(buffer, read);
+            SendChunk(buffer, read);
         } while (read != 0);
-        success = true;
       }
       catch
       {
-        success = false;
-      }
-      finally
-      {
-        await SendFinalChunk();
+        // Do nothing
       }
 
-      return success;
+      SendFinalChunk();
     }
 
     /// <summary>
@@ -332,14 +319,15 @@ namespace Tfres
     /// <param name="chunk">Chunk of data.</param>
     /// <param name="encoding">Chunk (string) encoding (default = UTF-8)</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendChunk(string chunk, Encoding encoding = null)
+    public void SendChunk(string chunk, Encoding encoding = null)
     {
       if (!_headersSent)
         SendHeaders();
-      if (chunk == null)
-        return true;
 
-      return await SendChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
+      if (chunk == null)
+        return;
+      
+      SendChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
     }
 
     /// <summary>
@@ -349,16 +337,17 @@ namespace Tfres
     /// <param name="chunk">Chunk of data.</param>
     /// <param name="mimeType">Force a special MIME-Type</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendChunk(byte[] chunk, string mimeType = "application/octet-stream")
+    public void SendChunk(byte[] chunk, string mimeType = "application/octet-stream")
     {
       ContentType = mimeType;
 
       if (!_headersSent)
         SendHeaders();
-      if (chunk == null)
-        return true;
 
-      return await SendChunk(chunk, chunk.Length);
+      if (chunk == null)
+        return;
+      
+      SendChunk(chunk, chunk.Length);
     }
 
     /// <summary>
@@ -367,27 +356,18 @@ namespace Tfres
     /// </summary>
     /// <param name="chunk">Chunk of data.</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendChunk(byte[] chunk, int length)
+    public void SendChunk(byte[] chunk, int length)
     {
       if (!_headersSent)
         SendHeaders();
       if (chunk == null)
-        return true;
+        return;
 
       if (chunk.Length > 0)
         ContentLength += chunk.Length;
 
-      try
-      {
-        if (chunk.Length < 1) chunk = Array.Empty<byte>();
-        await _outputStream.WriteAsync(chunk, 0, length).ConfigureAwait(false);
-      }
-      catch (Exception)
-      {
-        return false;
-      }
-
-      return true;
+      if (chunk.Length < 1) chunk = Array.Empty<byte>();
+      _outputStream.WriteAsync(chunk, 0, length).Wait();
     }
 
     /// <summary>
@@ -395,7 +375,7 @@ namespace Tfres
     ///   connection.
     /// </summary>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendFinalChunk() => await SendFinalChunk(null, 0);
+    public void SendFinalChunk() => SendFinalChunk(null);
 
     /// <summary>
     ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
@@ -404,8 +384,8 @@ namespace Tfres
     /// <param name="chunk">Chunk of data.</param>
     /// <param name="encoding">Chunk (string) encoding (default: UTF-8)</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendFinalChunk(string chunk, Encoding encoding = null) 
-      => await SendFinalChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
+    public void SendFinalChunk(string chunk, Encoding encoding = null) 
+      => SendFinalChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
 
     /// <summary>
     ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
@@ -413,16 +393,7 @@ namespace Tfres
     /// </summary>
     /// <param name="chunk">Chunk of data.</param>
     /// <returns>True if successful.</returns>
-    public async Task<bool> SendFinalChunk(byte[] chunk) 
-      => await SendFinalChunk(chunk, chunk?.Length ?? 0);
-
-    /// <summary>
-    ///   Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
-    ///   connection.
-    /// </summary>
-    /// <param name="chunk">Chunk of data.</param>
-    /// <returns>True if successful.</returns>
-    public async Task<bool> SendFinalChunk(byte[] chunk, int length)
+    public void SendFinalChunk(byte[] chunk)
     {
       if (!_headersSent)
         SendHeaders();
@@ -430,25 +401,15 @@ namespace Tfres
       if (chunk != null && chunk.Length > 0)
         ContentLength += chunk.Length;
 
-      try
-      {
-        if (chunk != null && chunk.Length > 0)
-          await _outputStream.WriteAsync(chunk, 0, length).ConfigureAwait(false);
+      if (chunk != null && chunk.Length > 0) 
+        _outputStream.WriteAsync(chunk, 0, chunk.Length).Wait();
 
-        var endChunk = Array.Empty<byte>();
-        await _outputStream.WriteAsync(endChunk, 0, endChunk.Length).ConfigureAwait(false);
+      var endChunk = Array.Empty<byte>();
+      _outputStream.WriteAsync(endChunk, 0, endChunk.Length).Wait();
+      _outputStream.FlushAsync().Wait();
 
-        await _outputStream.FlushAsync().ConfigureAwait(false);
-        _outputStream.Close();
-
-        _response?.Close();
-
-        return true;
-      }
-      catch (Exception)
-      {
-        return false;
-      }
+      _outputStream.Close();
+      _response?.Close();
     }
 
     #endregion

@@ -20,7 +20,7 @@ namespace Tfres
     /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE, etc.</param>
     /// <param name="path">The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.</param>
     /// <param name="handler">The method that should be called to handle the request.</param>
-    public Endpoint(HttpVerb verb, string path, Func<HttpContext, Task> handler)
+    public Endpoint(HttpVerb verb, string path, Action<HttpContext> handler)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -51,7 +51,7 @@ namespace Tfres
     /// <summary>
     ///   The
     /// </summary>
-    public Func<HttpContext, Task> Handler { get; }
+    public Action<HttpContext> Handler { get; }
 
     #endregion
 

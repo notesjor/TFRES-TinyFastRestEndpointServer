@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using Newtonsoft.Json;
 
 #endregion
 
@@ -17,10 +18,10 @@ namespace Tfres
     {
     }
 
-    internal HttpContext(HttpListenerContext ctx)
+    internal HttpContext(HttpListenerContext ctx, JsonSerializer serializer)
     {
       Request = new HttpRequest(ctx);
-      Response = new HttpResponse(Request, ctx ?? throw new ArgumentNullException(nameof(ctx)));
+      Response = new HttpResponse(Request, ctx ?? throw new ArgumentNullException(nameof(ctx)), serializer);
     }
 
     public string PostDataAsString => Request.PostDataAsString;
@@ -46,5 +47,10 @@ namespace Tfres
     /// </summary>
     /// <returns>Post-Data as T</returns>
     public T PostData<T>() => Request.PostData<T>();
+
+    /// <summary>
+    /// Serializer
+    /// </summary>
+    public JsonConverter Serializer { get; set; }
   }
 }

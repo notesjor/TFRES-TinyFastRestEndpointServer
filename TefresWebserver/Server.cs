@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 #endregion
 
@@ -58,7 +59,7 @@ namespace Tfres
     /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
     /// <param name="path">The raw URL to match, i.e. /foo/bar.</param>
     /// <param name="handler">The method to which control should be passed.</param>
-    public void AddEndpoint(HttpVerb verb, string path, Func<HttpContext, Task> handler)
+    public void AddEndpoint(HttpVerb verb, string path, Action<HttpContext> handler)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -71,6 +72,11 @@ namespace Tfres
     /// </summary>
     public int Timeout { get; set; } = 0;
 
+    /// <summary>
+    /// Default Serializer
+    /// </summary>
+    public JsonSerializer Serializer { get; set; }
+
     #endregion
 
     #region Private-Members
@@ -82,7 +88,7 @@ namespace Tfres
     private readonly int _listenerPort;
     private int _streamReadBufferSize = 65536;
 
-    private readonly Func<HttpContext, Task> _defaultRoute;
+    private readonly Action<HttpContext> _defaultRoute;
 
     private readonly CancellationTokenSource _tokenSource;
 
@@ -99,13 +105,14 @@ namespace Tfres
     ///   Method used when a request is received and no matching routes are found.  Commonly used as
     ///   the 404 handler when routes are used.
     /// </param>
-    public Server(string hostname, int port, Func<HttpContext, Task> defaultRoute)
+    public Server(string hostname, int port, Action<HttpContext> defaultRoute)
     {
       if (string.IsNullOrEmpty(hostname))
         hostname = "*";
-      if (port < 1)
+      if (port < 1 || port > 65535)
         throw new ArgumentOutOfRangeException(nameof(port));
-
+      
+      Serializer = new JsonSerializer();
       _httpListener = new HttpListener();
 
       _listenerHostnames = new List<string> { hostname };
@@ -128,9 +135,9 @@ namespace Tfres
     ///   Method used when a request is received and no matching routes are found.  Commonly used as
     ///   the 404 handler when routes are used.
     /// </param>
-    public Server(List<string> hostnames, int port, Func<HttpContext, Task> defaultRoute)
+    public Server(List<string> hostnames, int port, Action<HttpContext> defaultRoute)
     {
-      if (port         < 1) throw new ArgumentOutOfRangeException(nameof(port));
+      if (port < 1) throw new ArgumentOutOfRangeException(nameof(port));
       if (defaultRoute == null) throw new ArgumentNullException(nameof(defaultRoute));
 
       _httpListener = new HttpListener();
@@ -198,28 +205,14 @@ namespace Tfres
 
             try
             {
-              var ctx = new HttpContext(listenerContext);
+              var ctx = new HttpContext(listenerContext, Serializer);
+              var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery) ?? _defaultRoute;
+              var task = Task.Run(() => { handler(ctx); }, token);
 
-              #region Process-Via-Routing
-
-              var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery);
-              if (handler != null)
-              {
-                if (Timeout > 0)
-                  handler(ctx).Wait(Timeout * 1000, token);
-                else
-                  handler(ctx).Wait(token);
-              }
-              // ReSharper disable once RedundantIfElseBlock
+              if (Timeout > 0)
+                task.Wait(Timeout * 1000, token);
               else
-              {
-                if (Timeout > 0)
-                  _defaultRoute(ctx).Wait(Timeout * 1000, token);
-                else
-                  _defaultRoute(ctx).Wait(token);
-              }
-
-              #endregion
+                task.Wait(token);
             }
             catch
             {

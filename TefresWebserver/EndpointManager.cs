@@ -46,7 +46,7 @@ namespace Tfres
     /// <param name="method">The HTTP method.</param>
     /// <param name="path">URL path, i.e. /path/to/resource.</param>
     /// <param name="handler">Method to invoke.</param>
-    public void Add(HttpVerb method, string path, Func<HttpContext, Task> handler)
+    public void Add(HttpVerb method, string path, Action<HttpContext> handler)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -110,7 +110,7 @@ namespace Tfres
     /// <param name="method">The HTTP method.</param>
     /// <param name="path">URL path.</param>
     /// <returns>Method to invoke.</returns>
-    public Func<HttpContext, Task> Match(HttpVerb method, string path)
+    public Action<HttpContext> Match(HttpVerb method, string path)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
 
