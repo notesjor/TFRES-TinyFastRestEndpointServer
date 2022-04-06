@@ -207,12 +207,15 @@ namespace Tfres
             {
               var ctx = new HttpContext(listenerContext, Serializer);
               var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery) ?? _defaultRoute;
-              var task = Task.Run(() => { handler(ctx); }, token);
+              var task = (new Func<HttpContext, Task>(async (p) => await Task.Run(() => handler(p), token))).Invoke(ctx);
 
               if (Timeout > 0)
                 task.Wait(Timeout * 1000, token);
               else
                 task.Wait(token);
+
+              ctx.Request.Close();
+              ctx.Response.Close();
             }
             catch
             {

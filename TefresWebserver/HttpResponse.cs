@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using Newtonsoft.Json;
@@ -61,7 +62,7 @@ namespace Tfres
 
     internal HttpResponse(HttpRequest req, HttpListenerContext ctx, JsonSerializer serializer)
     {
-      _request = req            ?? throw new ArgumentNullException(nameof(req));
+      _request = req ?? throw new ArgumentNullException(nameof(req));
       _response = ctx?.Response ?? throw new ArgumentNullException(nameof(ctx));
       _outputStream = _response.OutputStream;
       _serializer = serializer;
@@ -79,12 +80,12 @@ namespace Tfres
     {
       var ret = "";
 
-      ret += "--- HTTP Response ---"   + Environment.NewLine;
-      ret += "  Status Code        : " + StatusCode                                    + Environment.NewLine;
+      ret += "--- HTTP Response ---" + Environment.NewLine;
+      ret += "  Status Code        : " + StatusCode + Environment.NewLine;
       ret += "  Status Description : " + HttpStatusHelper.GetStatusMessage(StatusCode) + Environment.NewLine;
-      ret += "  Content            : " + ContentType                                   + Environment.NewLine;
-      ret += "  Content Length     : " + ContentLength                                 + " bytes" + Environment.NewLine;
-      ret += "  Chunked Transfer   : " + true                                          + Environment.NewLine;
+      ret += "  Content            : " + ContentType + Environment.NewLine;
+      ret += "  Content Length     : " + ContentLength + " bytes" + Environment.NewLine;
+      ret += "  Chunked Transfer   : " + true + Environment.NewLine;
       if (Headers != null && Headers.Count > 0)
       {
         ret += "  Headers            : " + Environment.NewLine;
@@ -104,9 +105,9 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void Send()
     {
-      if (!_headersSent) SendHeaders();
+      SendHeaders(false);
 
-      _outputStream.FlushAsync().Wait();
+      _outputStream.Flush();
       _outputStream.Close();
 
       _response?.Close();
@@ -141,7 +142,7 @@ namespace Tfres
     /// <param name="errorMessage">Plaintext error message</param>
     /// <returns>True if successful.</returns>
     [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
-    public void Send(HttpStatusCode statusCode, string errorMessage) 
+    public void Send(HttpStatusCode statusCode, string errorMessage)
       => Send((int)statusCode, errorMessage);
 
     /// <summary>
@@ -151,7 +152,7 @@ namespace Tfres
     /// <param name="content">Plaintext content</param>
     /// <param name="mimeType">Content Mime-Type</param>
     /// <returns>True if successful.</returns>
-    public void Send(HttpStatusCode statusCode, string content, string mimeType) 
+    public void Send(HttpStatusCode statusCode, string content, string mimeType)
       => Send((int)statusCode, content, mimeType);
 
     /// <summary>
@@ -163,7 +164,7 @@ namespace Tfres
     /// ///
     /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
     /// <returns>True if successful.</returns>
-    public void Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) 
+    public void Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl)
       => Send((int)statusCode, errorMessage, errorCode, helpUrl);
 
     /// <summary>
@@ -288,9 +289,7 @@ namespace Tfres
     public void Send(Stream stream, string mimeType)
     {
       ContentType = mimeType;
-
-      if (!_headersSent)
-        SendHeaders();
+      SendHeaders(true);
 
       try
       {
@@ -321,12 +320,11 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void SendChunk(string chunk, Encoding encoding = null)
     {
-      if (!_headersSent)
-        SendHeaders();
+      SendHeaders(true);
 
       if (chunk == null)
         return;
-      
+
       SendChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
     }
 
@@ -342,11 +340,11 @@ namespace Tfres
       ContentType = mimeType;
 
       if (!_headersSent)
-        SendHeaders();
+        SendHeaders(true);
 
       if (chunk == null)
         return;
-      
+
       SendChunk(chunk, chunk.Length);
     }
 
@@ -358,8 +356,7 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void SendChunk(byte[] chunk, int length)
     {
-      if (!_headersSent)
-        SendHeaders();
+      SendHeaders(true);
       if (chunk == null)
         return;
 
@@ -367,7 +364,7 @@ namespace Tfres
         ContentLength += chunk.Length;
 
       if (chunk.Length < 1) chunk = Array.Empty<byte>();
-      _outputStream.WriteAsync(chunk, 0, length).Wait();
+      _outputStream.Write(chunk, 0, length);
     }
 
     /// <summary>
@@ -384,7 +381,7 @@ namespace Tfres
     /// <param name="chunk">Chunk of data.</param>
     /// <param name="encoding">Chunk (string) encoding (default: UTF-8)</param>
     /// <returns>True if successful.</returns>
-    public void SendFinalChunk(string chunk, Encoding encoding = null) 
+    public void SendFinalChunk(string chunk, Encoding encoding = null)
       => SendFinalChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
 
     /// <summary>
@@ -395,18 +392,17 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void SendFinalChunk(byte[] chunk)
     {
-      if (!_headersSent)
-        SendHeaders();
+      SendHeaders(true);
 
       if (chunk != null && chunk.Length > 0)
         ContentLength += chunk.Length;
 
-      if (chunk != null && chunk.Length > 0) 
-        _outputStream.WriteAsync(chunk, 0, chunk.Length).Wait();
+      if (chunk != null && chunk.Length > 0)
+        _outputStream.Write(chunk, 0, chunk.Length);
 
       var endChunk = Array.Empty<byte>();
-      _outputStream.WriteAsync(endChunk, 0, endChunk.Length).Wait();
-      _outputStream.FlushAsync().Wait();
+      _outputStream.Write(endChunk, 0, endChunk.Length);
+      _outputStream.Flush();
 
       _outputStream.Close();
       _response?.Close();
@@ -416,34 +412,50 @@ namespace Tfres
 
     #region Private-Methods
 
-    private void SendHeaders()
-    {
-      if (_headersSent) throw new IOException("Headers already sent.");
+    private object _sendHeadersLock = new object();
 
+    private void SendHeaders(bool isChunked)
+    {
+      lock (_sendHeadersLock)
+      {
+        if (_headersSent)
+          return;
+
+        try
+        {
+          _response.ContentLength64 = ContentLength;
+          _response.StatusCode = StatusCode;
+          _response.StatusDescription = HttpStatusHelper.GetStatusMessage(StatusCode);
+          _response.SendChunked = isChunked;
+          _response.AddHeader("Access-Control-Allow-Origin", "*");
+          _response.ContentType = ContentType;
+
+          if (Headers != null && Headers.Count > 0)
+            foreach (var c in Headers.Where(c => !string.IsNullOrEmpty(c.Key)))
+              _response.AddHeader(c.Key, c.Value);
+        }
+        catch
+        {
+          // ignore
+        }
+
+        _headersSent = true;
+      }
+    }
+
+    #endregion
+
+    public void Close()
+    {
       try
       {
-        _response.ContentLength64 = ContentLength;
-        _response.StatusCode = StatusCode;
-        _response.StatusDescription = HttpStatusHelper.GetStatusMessage(StatusCode);
-        _response.SendChunked = true;
-        _response.AddHeader("Access-Control-Allow-Origin", "*");
-        _response.ContentType = ContentType;
-
-        if (Headers != null && Headers.Count > 0)
-          foreach (var curr in Headers)
-          {
-            if (string.IsNullOrEmpty(curr.Key)) continue;
-            _response.AddHeader(curr.Key, curr.Value);
-          }
+        _outputStream.Close();
+        _response?.Close();
       }
       catch
       {
         // ignore
       }
-
-      _headersSent = true;
     }
-
-    #endregion
   }
 }
