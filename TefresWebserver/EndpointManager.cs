@@ -27,10 +27,6 @@ namespace Tfres
 
     #endregion
 
-    #region Public-Members
-
-    #endregion
-
     #region Private-Members
 
     private readonly List<Endpoint> _routes;
@@ -136,13 +132,6 @@ namespace Tfres
       if (Exists(route.Verb, route.Path)) return;
 
       lock (_lock) _routes.Add(route);
-    }
-
-    private void Remove(Endpoint route)
-    {
-      if (route == null) throw new ArgumentNullException(nameof(route));
-
-      lock (_lock) _routes.Remove(route);
     }
 
     #endregion

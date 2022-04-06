@@ -54,17 +54,5 @@ namespace Tfres
     public Action<HttpContext> Handler { get; }
 
     #endregion
-
-    #region Private-Members
-
-    #endregion
-
-    #region Public-Methods
-
-    #endregion
-
-    #region Private-Methods
-
-    #endregion
   }
 }
