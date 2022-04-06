@@ -205,7 +205,7 @@ namespace Tfres
 
             try
             {
-              var ctx = new HttpContext(listenerContext, Serializer);
+              var ctx = new HttpContext(listenerContext, Serializer, token);
               var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery) ?? _defaultRoute;
               var task = (new Func<HttpContext, Task>(async (p) => await Task.Run(() => handler(p), token))).Invoke(ctx);
 

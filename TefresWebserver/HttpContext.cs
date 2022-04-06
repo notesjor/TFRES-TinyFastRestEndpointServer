@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Threading;
 using Newtonsoft.Json;
 
 #endregion
@@ -18,10 +19,11 @@ namespace Tfres
     {
     }
 
-    internal HttpContext(HttpListenerContext ctx, JsonSerializer serializer)
+    internal HttpContext(HttpListenerContext ctx, JsonSerializer serializer, CancellationToken token)
     {
       Request = new HttpRequest(ctx);
       Response = new HttpResponse(Request, ctx ?? throw new ArgumentNullException(nameof(ctx)), serializer);
+      CancellationToken = token;
     }
 
     public string PostDataAsString => Request.PostDataAsString;
@@ -49,8 +51,8 @@ namespace Tfres
     public T PostData<T>() => Request.PostData<T>();
 
     /// <summary>
-    /// Serializer
+    /// If HttpContext is canceled by Client?
     /// </summary>
-    public JsonConverter Serializer { get; set; }
+    public CancellationToken CancellationToken { get; }
   }
 }
