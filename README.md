@@ -8,10 +8,8 @@ A tiny fast REST-Server written in C# async.
   
 ## Example using Routes
 ```
-  using System;
-using System.IO;
+using System;
 using System.Net;
-using System.Threading.Tasks;
 using Tfres;
 
 namespace TFRES.Test.SimpleServer
@@ -21,51 +19,52 @@ namespace TFRES.Test.SimpleServer
     static void Main(string[] args)
     {
       Console.Write("Start Server...");
-      // Starte Server lokal auf Port 9999
+      // Start a Server at loclhost (127.0.0.1) on port 9999
       var server = new Server("127.0.0.1", 9999, (ctx) => ctx.Response.Send(200));
 
-      // Einfache Endpunkte mit direkter Antwort
+      // Simple Endpoints - direct answer
       server.AddEndpoint(HttpVerb.GET, "/hello", (ctx) => ctx.Response.Send("Hello World"));
       server.AddEndpoint(HttpVerb.GET, "/user", (ctx) => ctx.Response.Send(new User { Name = ctx.Request.GetData()["name"] }));
-
-      // Post Endpunkt mit komplexer Antwort
+      // Age-Check Endpoint with POST-Data
       server.AddEndpoint(HttpVerb.POST, "/check", AgeCheck);
-
-      // Post Endpunkt mit Stream Antwort
+      // Extrem simple file streaming - chunked auto-transfer
       server.AddEndpoint(HttpVerb.GET, "/corpus", GetBigCorpusStream);
+      // If you send a object as response - the object is auto-serialized with Newtonsoft JSON
+      server.AddEndpoint(HttpVerb.GET, "/newUser", NewUser);
 
       Console.WriteLine("ok!");
       Console.ReadLine();
     }
 
-    private static Task AgeCheck(HttpContext ctx)
+    private static void AgeCheck(HttpContext ctx)
     {
       var user = ctx.PostData<User>(); // Automatisch Deserialisierung eines JSON-Objekts
       if (user == null || string.IsNullOrEmpty(user.Name))
-        return ctx.Response.Send(HttpStatusCode.InternalServerError,
-                          "Nutzer darf nicht null sein und die Eigenschaft 'name' muss gesetzt sein.");
+      {
+        ctx.Response.Send(HttpStatusCode.InternalServerError, 
+                          "Error 105: user can not be empty - and needs a name (user.Name)",
+                          501,
+                          "http://help.com/url");
+        return;
+      }
 
       if (user.Age < 18)
-        return ctx.Response.Send(HttpStatusCode.InternalServerError,
-                                 "Nutzer muss mindestens 18 Jahre alt sein");
-
-      return ctx.Response.Send(HttpStatusCode.Accepted);
-    }
-
-    private static Task GetBigCorpusStream(HttpContext ctx)
-    {
-      var buffer = new byte[65536]; // Lese aus lokaler Datei 'corpus.cec6' mit einem 64KB Buffer
-      using (var fs = new FileStream("corpus.cec6", FileMode.Open, FileAccess.Read))
       {
-        var size = fs.Read(buffer, 0, buffer.Length);
-        while (size > 0)
-        {
-          ctx.Response.SendChunk(buffer).Wait(); // Sende 'buffer' als Chunk via HTTP
-          size = fs.Read(buffer, 0, buffer.Length); // Lese nächsten 'buffer' ein
-        }
-        return ctx.Response.SendFinalChunk(buffer); // Schließe Verbindung.
+        ctx.Response.Send(HttpStatusCode.InternalServerError,
+                         "Error U18: user needs to be over 18.",
+                         518,
+                         "http://terms.of/service");
+
       }
+
+      ctx.Response.Send(HttpStatusCode.Accepted);
     }
+
+    private static void GetBigCorpusStream(HttpContext ctx) 
+      => ctx.Response.SendFile("/path/veryBig.file");
+
+    private static void NewUser(HttpContext ctx) 
+      => ctx.Response.Send(new User { Name = "Jan", Age = 18 + new Random().Next(1, 50) });
   }
 
   [Serializable]

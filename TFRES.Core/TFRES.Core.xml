@@ -34,7 +34,7 @@
               Assign a method handler for when requests are received matching the supplied method and path.
             </summary>
         </member>
-        <member name="M:Tfres.Endpoint.#ctor(Tfres.HttpVerb,System.String,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+        <member name="M:Tfres.Endpoint.#ctor(Tfres.HttpVerb,System.String,System.Action{Tfres.HttpContext})">
             <summary>
               Create a new route object.
             </summary>
@@ -67,7 +67,7 @@
               Instantiate the object.
             </summary>
         </member>
-        <member name="M:Tfres.EndpointManager.Add(Tfres.HttpVerb,System.String,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+        <member name="M:Tfres.EndpointManager.Add(Tfres.HttpVerb,System.String,System.Action{Tfres.HttpContext})">
             <summary>
               Add a route.
             </summary>
@@ -132,6 +132,11 @@
               Return Post-Data as T
             </summary>
             <returns>Post-Data as T</returns>
+        </member>
+        <member name="P:Tfres.HttpContext.CancellationToken">
+            <summary>
+            If HttpContext is canceled by Client?
+            </summary>
         </member>
         <member name="T:Tfres.HttpRequest">
             <summary>
@@ -279,27 +284,6 @@
             </summary>
             <param name="ctx">HttpListenerContext.</param>
         </member>
-        <member name="M:Tfres.HttpRequest.FromStream(System.IO.Stream)">
-            <summary>
-              Instantiate the object using a generic stream.
-            </summary>
-            <param name="stream">Stream.</param>
-            <returns>HttpRequest.</returns>
-        </member>
-        <member name="M:Tfres.HttpRequest.FromStream(System.Net.Sockets.NetworkStream)">
-            <summary>
-              Instantiate the object using a network stream.
-            </summary>
-            <param name="stream">NetworkStream.</param>
-            <returns>HttpRequest.</returns>
-        </member>
-        <member name="M:Tfres.HttpRequest.FromTcpClient(System.Net.Sockets.TcpClient)">
-            <summary>
-              Instantiate the object using a TCP client.
-            </summary>
-            <param name="client">TcpClient.</param>
-            <returns>HttpRequest.</returns>
-        </member>
         <member name="M:Tfres.HttpRequest.ToString">
             <summary>
               Retrieve a string-formatted, human-readable copy of the HttpRequest instance.
@@ -338,7 +322,7 @@
         </member>
         <member name="M:Tfres.HttpRequest.GetUploadedFiles(System.Int32,System.Text.Encoding)">
             <summary>
-            If a JavaScript/Webbrowser sends multiple files - you can read all files at once
+              If a JavaScript/Webbrowser sends multiple files - you can read all files at once
             </summary>
             <param name="uploadLimit">Maximal complete size of all files</param>
             <param name="encoding">Set file encoding</param>
@@ -387,21 +371,21 @@
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Int32)">
             <summary>
-            Send headers (statusCode) and no data to the requestor and terminate the connection.
+              Send headers (statusCode) and no data to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Net.HttpStatusCode)">
             <summary>
-            Send headers (statusCode) and no data to the requestor and terminate the connection.
+              Send headers (statusCode) and no data to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Net.HttpStatusCode,System.String)">
             <summary>
-            Send headers (statusCode) and a error message to the requestor and terminate the connection.
+              Send headers (statusCode) and a error message to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <param name="errorMessage">Plaintext error message</param>
@@ -409,7 +393,7 @@
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Net.HttpStatusCode,System.String,System.String)">
             <summary>
-            Send headers (statusCode) and a content to the requestor and terminate the connection.
+              Send headers (statusCode) and a content to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <param name="content">Plaintext content</param>
@@ -418,17 +402,18 @@
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Net.HttpStatusCode,System.String,System.Int32,System.String)">
             <summary>
-            Send headers (statusCode) and a error message to the requestor and terminate the connection.
+              Send headers (statusCode) and a error message to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <param name="errorMessage">Plaintext error message</param>
             <param name="errorCode">Unique error Code</param>
-            /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
+            ///
+            <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Int32,System.String)">
             <summary>
-            Send headers (statusCode) and a error message to the requestor and terminate the connection.
+              Send headers (statusCode) and a error message to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <param name="errorMessage">Plaintext error message</param>
@@ -436,7 +421,7 @@
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Int32,System.String,System.String)">
             <summary>
-            Send headers (statusCode / mimeType) and a content to the requestor and terminate the connection.
+              Send headers (statusCode / mimeType) and a content to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <param name="content">Plaintext content (utf-8)</param>
@@ -445,12 +430,13 @@
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Int32,System.String,System.Int32,System.String)">
             <summary>
-            Send headers (statusCode) and a error message to the requestor and terminate the connection.
+              Send headers (statusCode) and a error message to the requestor and terminate the connection.
             </summary>
             <param name="statusCode">StatusCode</param>
             <param name="errorMessage">Plaintext error message</param>
             <param name="errorCode">Unique error Code</param>
-            /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
+            ///
+            <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.Send(System.Object)">
@@ -476,20 +462,20 @@
             <param name="mimeType">Force a special MIME-Type</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:Tfres.HttpResponse.SendAsync(System.Byte[],System.String)">
+        <member name="M:Tfres.HttpResponse.SendFile(System.String,System.String)">
             <summary>
               Send headers and data to the requestor and terminate the connection.
             </summary>
-            <param name="data">Data.</param>
+            <param name="path">Path to file</param>
             <param name="mimeType">Force a special MIME-Type</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:Tfres.HttpResponse.Send(System.Int64,System.IO.Stream)">
+        <member name="M:Tfres.HttpResponse.Send(System.IO.Stream,System.String)">
             <summary>
               Send headers and data to the requestor and terminate.
             </summary>
-            <param name="contentLength">Number of bytes to send.</param>
             <param name="stream">Stream containing the data.</param>
+            <param name="mimeType"></param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.SendChunk(System.String,System.Text.Encoding)">
@@ -501,12 +487,13 @@
             <param name="encoding">Chunk (string) encoding (default = UTF-8)</param>
             <returns>True if successful.</returns>
         </member>
-        <member name="M:Tfres.HttpResponse.SendChunk(System.Byte[])">
+        <member name="M:Tfres.HttpResponse.SendChunk(System.Byte[],System.String)">
             <summary>
               Send headers (if not already sent) and a chunk of data using chunked transfer-encoding, and keep the connection
               in-tact.
             </summary>
             <param name="chunk">Chunk of data.</param>
+            <param name="mimeType">Force a special MIME-Type</param>
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.SendChunk(System.Byte[],System.Int32)">
@@ -534,14 +521,6 @@
             <returns>True if successful.</returns>
         </member>
         <member name="M:Tfres.HttpResponse.SendFinalChunk(System.Byte[])">
-            <summary>
-              Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
-              connection.
-            </summary>
-            <param name="chunk">Chunk of data.</param>
-            <returns>True if successful.</returns>
-        </member>
-        <member name="M:Tfres.HttpResponse.SendFinalChunk(System.Byte[],System.Int32)">
             <summary>
               Send headers (if not already sent) and the final chunk of data using chunked transfer-encoding and terminate the
               connection.
@@ -586,7 +565,7 @@
               Static routes; i.e. routes with explicit matching and any HTTP method.
             </summary>
         </member>
-        <member name="M:Tfres.Server.AddEndpoint(Tfres.HttpVerb,System.String,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+        <member name="M:Tfres.Server.AddEndpoint(Tfres.HttpVerb,System.String,System.Action{Tfres.HttpContext})">
             <summary>
               Add a static route to the server.
             </summary>
@@ -596,10 +575,15 @@
         </member>
         <member name="P:Tfres.Server.Timeout">
             <summary>
-            Set a Timeout in seconds.
+              Set a Timeout in seconds.
             </summary>
         </member>
-        <member name="M:Tfres.Server.#ctor(System.String,System.Int32,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+        <member name="P:Tfres.Server.Serializer">
+            <summary>
+            Default Serializer
+            </summary>
+        </member>
+        <member name="M:Tfres.Server.#ctor(System.String,System.Int32,System.Action{Tfres.HttpContext})">
             <summary>
               Creates a new instance of the Watson Webserver.
             </summary>
@@ -610,7 +594,7 @@
               the 404 handler when routes are used.
             </param>
         </member>
-        <member name="M:Tfres.Server.#ctor(System.Collections.Generic.List{System.String},System.Int32,System.Func{Tfres.HttpContext,System.Threading.Tasks.Task})">
+        <member name="M:Tfres.Server.#ctor(System.Collections.Generic.List{System.String},System.Int32,System.Action{Tfres.HttpContext})">
             <summary>
               Creates a new instance of the Watson Webserver.
             </summary>

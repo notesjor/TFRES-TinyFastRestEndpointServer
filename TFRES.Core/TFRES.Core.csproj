@@ -4,21 +4,27 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
-    <PackageLicenseUrl>https://www.gnu.org/licenses/gpl-3.0.de.html</PackageLicenseUrl>
+    <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/notesjor/TFRES-TinyFastRestEndpointServer</PackageProjectUrl>
     <RepositoryUrl>https://github.com/notesjor/TFRES-TinyFastRestEndpointServer</RepositoryUrl>
     <Copyright>Jan Oliver Rüdiger</Copyright>
     <PackageTags>REST, WebServer, Tiny, Fast, Endpoint</PackageTags>
-    <Description>tiny, fast... REST-endpoint Server - based on jchristn/WatsonWebserver. Documentation: https://github.com/notesjor/TFRES-TinyFastRestEndpointServer</Description>
+    <Description>tiny, fast... REST-endpoint Server - Server is designed for fast and easy deployment of web services. Features like SSL/TLS are not provided and should be solved via reverse proxy. Authentication and similar features you have to implement yourself. This server does only two things: Receive and deliver data quickly.
+Documentation: https://github.com/notesjor/TFRES-TinyFastRestEndpointServer
+
+Based on jchristn/WatsonWebserver, but with many improvements and extremely reduced code base.</Description>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>Tfres.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
     <Product>TFRES.Core</Product>
     <PackageId>TFRES.Core</PackageId>
     <PackageReleaseNotes>Add OpenAPI support</PackageReleaseNotes>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Company>TFRES.Core</Company>
     <Authors>TFRES.Core</Authors>
+    <PackageIcon>server_network-cloud.png</PackageIcon>
+    <PackageIconUrl />
+    <PackageLicenseFile>LICENSE</PackageLicenseFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -45,6 +51,17 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.OpenApi" Version="1.2.3" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\..\IconPackage\png\64x64\server_network-cloud.png">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath></PackagePath>
+    </None>
   </ItemGroup>
 
 </Project>
