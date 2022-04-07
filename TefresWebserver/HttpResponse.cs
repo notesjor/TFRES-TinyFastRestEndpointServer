@@ -317,15 +317,16 @@ namespace Tfres
     /// </summary>
     /// <param name="chunk">Chunk of data.</param>
     /// <param name="encoding">Chunk (string) encoding (default = UTF-8)</param>
+    /// <param name="mimeType">Force a special MIME-Type</param>
     /// <returns>True if successful.</returns>
-    public void SendChunk(string chunk, Encoding encoding = null)
+    public void SendChunk(string chunk, Encoding encoding = null, string mimeType = "application/octet-stream")
     {
       SendHeaders(true);
 
       if (chunk == null)
         return;
 
-      SendChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk));
+      SendChunk(encoding == null ? Encoding.UTF8.GetBytes(chunk) : encoding.GetBytes(chunk), mimeType);
     }
 
     /// <summary>
@@ -358,6 +359,8 @@ namespace Tfres
     {
       SendHeaders(true);
       if (chunk == null)
+        return;
+      if(!_outputStream.CanWrite)
         return;
 
       if (chunk.Length > 0)
@@ -393,6 +396,8 @@ namespace Tfres
     public void SendFinalChunk(byte[] chunk)
     {
       SendHeaders(true);
+      if (!_outputStream.CanWrite)
+        return;
 
       if (chunk != null && chunk.Length > 0)
         ContentLength += chunk.Length;
