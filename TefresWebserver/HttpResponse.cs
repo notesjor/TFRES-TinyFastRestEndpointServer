@@ -80,12 +80,11 @@ namespace Tfres
     {
       var ret = "";
 
-      ret += "--- HTTP Response ---" + Environment.NewLine;
-      ret += "  Status Code        : " + StatusCode + Environment.NewLine;
-      ret += "  Status Description : " + HttpStatusHelper.GetStatusMessage(StatusCode) + Environment.NewLine;
-      ret += "  Content            : " + ContentType + Environment.NewLine;
+      ret += "--- HTTP Response ---"   + Environment.NewLine;
+      ret += "  Status Code        : " + StatusCode    + Environment.NewLine;
+      ret += "  Content            : " + ContentType   + Environment.NewLine;
       ret += "  Content Length     : " + ContentLength + " bytes" + Environment.NewLine;
-      ret += "  Chunked Transfer   : " + true + Environment.NewLine;
+      ret += "  Chunked Transfer   : " + true          + Environment.NewLine;
       if (Headers != null && Headers.Count > 0)
       {
         ret += "  Headers            : " + Environment.NewLine;
@@ -430,7 +429,6 @@ namespace Tfres
         {
           _response.ContentLength64 = ContentLength;
           _response.StatusCode = StatusCode;
-          _response.StatusDescription = HttpStatusHelper.GetStatusMessage(StatusCode);
           _response.SendChunked = isChunked;
           _response.AddHeader("Access-Control-Allow-Origin", "*");
           _response.ContentType = ContentType;

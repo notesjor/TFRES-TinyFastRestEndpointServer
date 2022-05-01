@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -59,7 +60,7 @@ namespace Tfres
     /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE.</param>
     /// <param name="path">The raw URL to match, i.e. /foo/bar.</param>
     /// <param name="handler">The method to which control should be passed.</param>
-    public void AddEndpoint(HttpVerb verb, string path, Action<HttpContext> handler)
+    public void AddEndpoint(HttpMethod verb, string path, Action<HttpContext> handler)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -206,16 +207,25 @@ namespace Tfres
             try
             {
               var ctx = new HttpContext(listenerContext, Serializer, token);
-              var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery) ?? _defaultRoute;
-              var task = (new Func<HttpContext, Task>(async (p) => await Task.Run(() => handler(p), token))).Invoke(ctx);
 
-              if (Timeout > 0)
-                task.Wait(Timeout * 1000, token);
-              else
-                task.Wait(token);
+              try
+              {
+                var handler = _endpoints.Match(ctx.Request.Verb, ctx.Request.RawUrlWithoutQuery) ?? _defaultRoute;
+                var task =
+                  (new Func<HttpContext, Task>(async (p) => await Task.Run(() => handler(p), token))).Invoke(ctx);
 
-              ctx.Request.Close();
-              ctx.Response.Close();
+                if (Timeout > 0)
+                  task.Wait(Timeout * 1000, token);
+                else
+                  task.Wait(token);
+
+                ctx.Request.Close();
+                ctx.Response.Close();
+              }
+              catch
+              {
+                ctx.Response.Send(HttpStatusCode.InternalServerError, "");
+              }
             }
             catch
             {

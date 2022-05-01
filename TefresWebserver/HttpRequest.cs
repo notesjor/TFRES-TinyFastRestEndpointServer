@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
@@ -83,7 +84,7 @@ namespace Tfres
     /// <summary>
     ///   The HTTP method used in the request.
     /// </summary>
-    public HttpVerb Verb { get; set; }
+    public HttpMethod Verb { get; set; }
 
     /// <summary>
     ///   Indicates whether or not chunked transfer encoding was detected.
@@ -208,7 +209,7 @@ namespace Tfres
       SourcePort = ctx.Request.RemoteEndPoint.Port;
       DestIp = ctx.Request.LocalEndPoint.Address.ToString();
       DestPort = ctx.Request.LocalEndPoint.Port;
-      Verb = (HttpVerb)Enum.Parse(typeof(HttpVerb), ctx.Request.HttpMethod, true);
+      Verb = (HttpMethod)Enum.Parse(typeof(HttpMethod), ctx.Request.HttpMethod, true);
       FullUrl = string.Copy(ctx.Request.Url.ToString().Trim());
       RawUrlWithQuery = string.Copy(ctx.Request.RawUrl.Trim());
       RawUrlWithoutQuery = string.Copy(ctx.Request.RawUrl.Trim());
@@ -745,7 +746,7 @@ namespace Tfres
             throw new
               ArgumentException("Request line does not contain at least three parts (method, raw URL, protocol/version).");
 
-          ret.Verb = (HttpVerb)Enum.Parse(typeof(HttpVerb), requestLine[0], true);
+          ret.Verb = (HttpMethod)Enum.Parse(typeof(HttpMethod), requestLine[0], true);
           ret.FullUrl = requestLine[1];
           ret.ProtocolVersion = requestLine[2];
           ret.RawUrlWithQuery = ret.FullUrl;

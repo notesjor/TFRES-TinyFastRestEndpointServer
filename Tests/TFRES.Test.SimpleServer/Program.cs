@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using System.Net.Http;
 using Tfres;
 
 namespace TFRES.Test.SimpleServer
@@ -13,14 +14,14 @@ namespace TFRES.Test.SimpleServer
       var server = new Server("127.0.0.1", 9999, (ctx) => ctx.Response.Send(200));
 
       // Simple Endpoints - direct answer
-      server.AddEndpoint(HttpVerb.GET, "/hello", (ctx) => ctx.Response.Send("Hello World"));
-      server.AddEndpoint(HttpVerb.GET, "/user", (ctx) => ctx.Response.Send(new User { Name = ctx.Request.GetData()["name"] }));
+      server.AddEndpoint(HttpMethod.Get, "/hello", (ctx) => ctx.Response.Send("Hello World"));
+      server.AddEndpoint(HttpMethod.Get, "/user", (ctx) => ctx.Response.Send(new User { Name = ctx.Request.GetData()["name"] }));
       // Age-Check Endpoint with POST-Data
-      server.AddEndpoint(HttpVerb.POST, "/check", AgeCheck);
+      server.AddEndpoint(HttpMethod.Post, "/check", AgeCheck);
       // Extrem simple file streaming - chunked auto-transfer
-      server.AddEndpoint(HttpVerb.GET, "/corpus", GetBigCorpusStream);
+      server.AddEndpoint(HttpMethod.Get, "/corpus", GetBigCorpusStream);
       // If you send a object as response - the object is auto-serialized with Newtonsoft JSON
-      server.AddEndpoint(HttpVerb.GET, "/newUser", NewUser);
+      server.AddEndpoint(HttpMethod.Get, "/newUser", NewUser);
 
       Console.WriteLine("ok!");
       Console.ReadLine();

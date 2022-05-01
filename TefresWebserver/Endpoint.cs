@@ -1,6 +1,7 @@
 ﻿#region
 
 using System;
+using System.Net.Http;
 using System.Threading.Tasks;
 
 #endregion
@@ -20,7 +21,7 @@ namespace Tfres
     /// <param name="verb">The HTTP method, i.e. GET, PUT, POST, DELETE, etc.</param>
     /// <param name="path">The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.</param>
     /// <param name="handler">The method that should be called to handle the request.</param>
-    public Endpoint(HttpVerb verb, string path, Action<HttpContext> handler)
+    public Endpoint(HttpMethod verb, string path, Action<HttpContext> handler)
     {
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
@@ -41,7 +42,7 @@ namespace Tfres
     /// <summary>
     ///   The HTTP method, i.e. GET, PUT, POST, DELETE, etc.
     /// </summary>
-    public HttpVerb Verb { get; set; }
+    public HttpMethod Verb { get; set; }
 
     /// <summary>
     ///   The raw URL, i.e. /foo/bar/.  Be sure this begins and ends with '/'.
