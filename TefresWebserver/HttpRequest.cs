@@ -209,7 +209,7 @@ namespace Tfres
       SourcePort = ctx.Request.RemoteEndPoint.Port;
       DestIp = ctx.Request.LocalEndPoint.Address.ToString();
       DestPort = ctx.Request.LocalEndPoint.Port;
-      Verb = (HttpMethod)Enum.Parse(typeof(HttpMethod), ctx.Request.HttpMethod, true);
+      Verb = new HttpMethod(ctx.Request.HttpMethod);
       FullUrl = string.Copy(ctx.Request.Url.ToString().Trim());
       RawUrlWithQuery = string.Copy(ctx.Request.RawUrl.Trim());
       RawUrlWithoutQuery = string.Copy(ctx.Request.RawUrl.Trim());
