@@ -487,6 +487,8 @@ namespace Tfres
       return null;
     }
 
+    private static char[] _separatorChunk = { ';' };
+
     /// <summary>
     ///   For chunked transfer-encoded requests, read the next chunk.
     /// </summary>
@@ -515,9 +517,9 @@ namespace Tfres
           {
             lenStr = lenStr.Trim();
 
-            if (lenStr.Contains(";"))
+            if (lenStr.Contains(_separatorChunk[0]))
             {
-              var lenStrParts = lenStr.Split(new[] { ';' }, 2);
+              var lenStrParts = lenStr.Split(_separatorChunk, 2);
 
               if (lenStrParts.Length == 2) chunk.Metadata = lenStrParts[1];
             }
@@ -597,6 +599,9 @@ namespace Tfres
       }
     }
 
+    private static char[] _separatorData = {'&'};
+    private static char[] _separatorDataValue = {'='};
+
     /// <summary>
     ///   Return Data send as GET-Parameter
     /// </summary>
@@ -608,12 +613,12 @@ namespace Tfres
         if (string.IsNullOrEmpty(GetDataAsString))
           return new Dictionary<string, string>();
 
-        var split = GetDataAsString.Split(new[] { "&" }, StringSplitOptions.RemoveEmptyEntries);
+        var split = GetDataAsString.Split(_separatorData, StringSplitOptions.RemoveEmptyEntries);
         var res = new Dictionary<string, string>();
         foreach (var x in split)
           try
           {
-            var entry = x.Split(new[] { "=" }, StringSplitOptions.RemoveEmptyEntries);
+            var entry = x.Split(_separatorDataValue, StringSplitOptions.RemoveEmptyEntries);
             if (entry.Length != 2)
               continue;
 
@@ -708,6 +713,8 @@ namespace Tfres
 
     #region Private-Methods
 
+    private static string[] _separatorLineBreaks = { "\r\n", "\n" };
+
     private static HttpRequest BuildHeaders(byte[] bytes)
     {
       if (bytes == null) throw new ArgumentNullException(nameof(bytes));
@@ -730,7 +737,7 @@ namespace Tfres
       #region Convert-to-String-List
 
       var str = Encoding.UTF8.GetString(bytes);
-      var headers = str.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+      var headers = str.Split(_separatorLineBreaks, StringSplitOptions.RemoveEmptyEntries);
 
       #endregion
 

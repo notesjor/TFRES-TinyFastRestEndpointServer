@@ -11,6 +11,8 @@ namespace Tfres
   {
     private readonly StringBuilder _stb = new StringBuilder();
 
+    private static string[] _separator = { "; name=\"", "\"; filename=\"" };
+
     public HttpRequestFile(string h1, string h2)
     {
       /* SAMPLE:
@@ -21,7 +23,7 @@ namespace Tfres
 
       // en passant cleaning
       var items = h1.Replace("Content-Disposition: ", "")
-                    .Split(new[] { "; name=\"", "\"; filename=\"" },
+                    .Split(_separator,
                            StringSplitOptions.RemoveEmptyEntries);
 
       ContentDisposition = items[0];

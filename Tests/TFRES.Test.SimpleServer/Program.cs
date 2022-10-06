@@ -11,7 +11,7 @@ namespace TFRES.Test.SimpleServer
     {
       Console.Write("Start Server...");
       // Start a Server at loclhost (127.0.0.1) on port 9999
-      var server = new Server("127.0.0.1", 9999, (ctx) => ctx.Response.Send(200));
+      var server = new Server("127.0.0.1", 9999, DefaultRouteTest);
 
       // Simple Endpoints - direct answer
       server.AddEndpoint(HttpMethod.Get, "/hello", (ctx) => ctx.Response.Send("Hello World"));
@@ -25,6 +25,11 @@ namespace TFRES.Test.SimpleServer
 
       Console.WriteLine("ok!");
       Console.ReadLine();
+    }
+
+    private static void DefaultRouteTest(HttpContext ctx)
+    {
+      Console.WriteLine(ctx.Request.FullUrl);
     }
 
     private static void AgeCheck(HttpContext ctx)
