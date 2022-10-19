@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>Tfres.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>C:\Projekte-Kooperation\TfresWebserver\TefresWebserver\Tfres.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
   </PropertyGroup>
 
@@ -16,9 +16,6 @@
     <Compile Include="..\TefresWebserver\HttpRequest.cs" Link="HttpRequest.cs" />
     <Compile Include="..\TefresWebserver\HttpRequestFile.cs" Link="HttpRequestFile.cs" />
     <Compile Include="..\TefresWebserver\HttpResponse.cs" Link="HttpResponse.cs" />
-    <Compile Include="..\TefresWebserver\HttpStatusHelper.cs" Link="HttpStatusHelper.cs" />
-    <Compile Include="..\TefresWebserver\HttpVerb.cs" Link="HttpVerb.cs" />
-    <Compile Include="..\TefresWebserver\MimeTypes.cs" Link="MimeTypes.cs" />
     <Compile Include="..\TefresWebserver\OpenApiHelper.cs" Link="OpenApiHelper.cs" />
     <Compile Include="..\TefresWebserver\Server.cs" Link="Server.cs" />
   </ItemGroup>

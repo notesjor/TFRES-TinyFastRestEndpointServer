@@ -14,7 +14,7 @@ Documentation: https://github.com/notesjor/TFRES-TinyFastRestEndpointServer
 
 Based on jchristn/WatsonWebserver, but with many improvements and extremely reduced code base.</Description>
     <SignAssembly>true</SignAssembly>
-    <AssemblyOriginatorKeyFile>Tfres.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile>C:\Projekte-Kooperation\TfresWebserver\TefresWebserver\Tfres.snk</AssemblyOriginatorKeyFile>
     <DelaySign>false</DelaySign>
     <Product>TFRES.Core</Product>
     <PackageId>TFRES.Core</PackageId>
@@ -40,9 +40,6 @@ Based on jchristn/WatsonWebserver, but with many improvements and extremely redu
     <Compile Include="..\TefresWebserver\HttpRequest.cs" Link="HttpRequest.cs" />
     <Compile Include="..\TefresWebserver\HttpRequestFile.cs" Link="HttpRequestFile.cs" />
     <Compile Include="..\TefresWebserver\HttpResponse.cs" Link="HttpResponse.cs" />
-    <Compile Include="..\TefresWebserver\HttpStatusHelper.cs" Link="HttpStatusHelper.cs" />
-    <Compile Include="..\TefresWebserver\HttpVerb.cs" Link="HttpVerb.cs" />
-    <Compile Include="..\TefresWebserver\MimeTypes.cs" Link="MimeTypes.cs" />
     <Compile Include="..\TefresWebserver\OpenApiHelper.cs" Link="OpenApiHelper.cs" />
     <Compile Include="..\TefresWebserver\Server.cs" Link="Server.cs" />
   </ItemGroup>
@@ -53,10 +50,6 @@ Based on jchristn/WatsonWebserver, but with many improvements and extremely redu
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\IconPackage\png\64x64\server_network-cloud.png">
-      <Pack>True</Pack>
-      <PackagePath></PackagePath>
-    </None>
     <None Include="..\LICENSE">
       <Pack>True</Pack>
       <PackagePath></PackagePath>
