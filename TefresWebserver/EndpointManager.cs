@@ -22,7 +22,7 @@ namespace Tfres
     /// </summary>
     public EndpointManager()
     {
-      _routes = new List<Endpoint>();
+      _routes = new Dictionary<HttpMethod, Dictionary<string,Action<HttpContext>>>();
       _lock = new object();
     }
 
@@ -30,7 +30,7 @@ namespace Tfres
 
     #region Private-Members
 
-    private readonly List<Endpoint> _routes;
+    private readonly Dictionary<HttpMethod, Dictionary<string,Action<HttpContext>>> _routes;
     private readonly object _lock;
 
     #endregion
@@ -48,40 +48,19 @@ namespace Tfres
       if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
       if (handler == null) throw new ArgumentNullException(nameof(handler));
 
-      var r = new Endpoint(method, path, handler);
-      Add(r);
-    }
-
-    /// <summary>
-    ///   Remove a route.
-    /// </summary>
-    /// <param name="method">The HTTP method.</param>
-    /// <param name="path">URL path.</param>
-    public void Remove(HttpMethod method, string path)
-    {
-      if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
-      var r = Get(method, path);
-      if (r == null) return;
-
-      lock (_lock) _routes.Remove(r);
-    }
-
-    /// <summary>
-    ///   Retrieve a static route.
-    /// </summary>
-    /// <param name="method">The HTTP method.</param>
-    /// <param name="path">URL path.</param>
-    /// <returns>Endpoint if the route exists, otherwise null.</returns>
-    public Endpoint Get(HttpMethod method, string path)
-    {
-      if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
       path = path.ToLower();
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
+      
+      if(Exists(method, path)) return;
 
-      lock (_lock) return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path);
+      lock (_lock)
+      {
+        if (!_routes.ContainsKey(method)) 
+          _routes.Add(method, new Dictionary<string, Action<HttpContext>>());
+        
+        _routes[method].Add(path, handler);
+      }
     }
 
     /// <summary>
@@ -98,7 +77,8 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_lock) return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path) != null;
+      lock (_lock) 
+        return _routes.ContainsKey(method) && _routes[method].ContainsKey(path);
     }
 
     /// <summary>
@@ -115,24 +95,10 @@ namespace Tfres
       if (!path.StartsWith("/")) path = "/" + path;
       if (!path.EndsWith("/")) path = path  + "/";
 
-      lock (_lock) return _routes.FirstOrDefault(i => i.Verb == method && i.Path == path)?.Handler;
-    }
-
-    #endregion
-
-    #region Private-Methods
-
-    private void Add(Endpoint route)
-    {
-      if (route == null) throw new ArgumentNullException(nameof(route));
-
-      route.Path = route.Path.ToLower();
-      if (!route.Path.StartsWith("/")) route.Path = "/"      + route.Path;
-      if (!route.Path.EndsWith("/")) route.Path = route.Path + "/";
-
-      if (Exists(route.Verb, route.Path)) return;
-
-      lock (_lock) _routes.Add(route);
+      lock (_lock) return
+        _routes.ContainsKey(method) && _routes[method].ContainsKey(path) 
+          ? _routes[method][path] 
+          : null;
     }
 
     #endregion

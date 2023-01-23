@@ -64,7 +64,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Chunk.cs" />
-    <Compile Include="Endpoint.cs" />
     <Compile Include="EndpointManager.cs" />
     <Compile Include="ErrorInfoMessage.cs" />
     <Compile Include="HttpContext.cs" />
