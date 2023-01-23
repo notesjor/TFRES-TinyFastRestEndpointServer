@@ -70,16 +70,7 @@ namespace Tfres
     /// <param name="path">URL path.</param>
     /// <returns>True if exists.</returns>
     public bool Exists(HttpMethod method, string path)
-    {
-      if (string.IsNullOrEmpty(path)) throw new ArgumentNullException(nameof(path));
-
-      path = path.ToLower();
-      if (!path.StartsWith("/")) path = "/" + path;
-      if (!path.EndsWith("/")) path = path  + "/";
-
-      lock (_lock) 
-        return _routes.ContainsKey(method) && _routes[method].ContainsKey(path);
-    }
+      => Match(method, path) != null;
 
     /// <summary>
     ///   Match a request method and URL to a handler method.
@@ -93,7 +84,7 @@ namespace Tfres
 
       path = path.ToLower();
       if (!path.StartsWith("/")) path = "/" + path;
-      if (!path.EndsWith("/")) path = path  + "/";
+      if (!path.EndsWith("/")) path += "/";
 
       lock (_lock) return
         _routes.ContainsKey(method) && _routes[method].ContainsKey(path) 
