@@ -101,9 +101,11 @@ namespace Tfres
     /// <summary>
     ///   Send headers and no data to the requestor and terminate the connection.
     /// </summary>
-    /// <returns>True if successful.</returns>
     public void Send()
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       SendHeaders(false);
 
       _outputStream.Flush();
@@ -116,7 +118,6 @@ namespace Tfres
     ///   Send headers (statusCode) and no data to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
-    /// <returns>True if successful.</returns>
     public void Send(int statusCode)
     {
       StatusCode = statusCode;
@@ -127,7 +128,6 @@ namespace Tfres
     ///   Send headers (statusCode) and no data to the requestor and terminate the connection.
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
-    /// <returns>True if successful.</returns>
     public void Send(HttpStatusCode statusCode)
     {
       StatusCode = (int)statusCode;
@@ -139,7 +139,6 @@ namespace Tfres
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
-    /// <returns>True if successful.</returns>
     [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
     public void Send(HttpStatusCode statusCode, string errorMessage)
       => Send((int)statusCode, errorMessage);
@@ -150,7 +149,6 @@ namespace Tfres
     /// <param name="statusCode">StatusCode</param>
     /// <param name="content">Plaintext content</param>
     /// <param name="mimeType">Content Mime-Type</param>
-    /// <returns>True if successful.</returns>
     public void Send(HttpStatusCode statusCode, string content, string mimeType)
       => Send((int)statusCode, content, mimeType);
 
@@ -162,7 +160,6 @@ namespace Tfres
     /// <param name="errorCode">Unique error Code</param>
     /// ///
     /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
-    /// <returns>True if successful.</returns>
     public void Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl)
       => Send((int)statusCode, errorMessage, errorCode, helpUrl);
 
@@ -171,7 +168,6 @@ namespace Tfres
     /// </summary>
     /// <param name="statusCode">StatusCode</param>
     /// <param name="errorMessage">Plaintext error message</param>
-    /// <returns>True if successful.</returns>
     [Obsolete("Please use Send(HttpStatusCode statusCode, string errorMessage, int errorCode, string helpUrl) for more polite error messages.")]
     public void Send(int statusCode, string errorMessage)
     {
@@ -185,7 +181,6 @@ namespace Tfres
     /// <param name="statusCode">StatusCode</param>
     /// <param name="content">Plaintext content (utf-8)</param>
     /// <param name="mimeType">Content Mime-Type</param>
-    /// <returns>True if successful.</returns>
     public void Send(int statusCode, string content, string mimeType)
     {
       StatusCode = statusCode;
@@ -200,9 +195,11 @@ namespace Tfres
     /// <param name="errorCode">Unique error Code</param>
     /// ///
     /// <param name="helpUrl">Link to a help/documentation to fix the problem.</param>
-    /// <returns>True if successful.</returns>
     public void Send(int statusCode, string errorMessage, int errorCode, string helpUrl)
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       StatusCode = statusCode;
       Send(new ErrorInfoMessage
       {
@@ -220,6 +217,9 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void Send(object obj)
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       if (obj == null)
         Send();
 
@@ -249,6 +249,9 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void Send(byte[] data, string mimeType)
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       if (data == null)
         data = Array.Empty<byte>();
 
@@ -264,6 +267,9 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void SendFile(string path, string mimeType = "application/octet-stream")
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       ContentType = mimeType;
 
       try
@@ -287,6 +293,9 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void Send(Stream stream, string mimeType)
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       ContentType = mimeType;
       SendHeaders(true);
 
@@ -320,6 +329,9 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void SendChunk(string chunk, Encoding encoding = null, string mimeType = "application/octet-stream")
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       SendHeaders(true);
 
       if (chunk == null)
@@ -337,6 +349,9 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void SendChunk(byte[] chunk, string mimeType = "application/octet-stream")
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       ContentType = mimeType;
 
       if (!_headersSent)
@@ -356,6 +371,9 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void SendChunk(byte[] chunk, int length)
     {
+      if (!_outputStream.CanWrite)
+        return;
+
       SendHeaders(true);
       if (chunk == null)
         return;
@@ -394,9 +412,10 @@ namespace Tfres
     /// <returns>True if successful.</returns>
     public void SendFinalChunk(byte[] chunk)
     {
-      SendHeaders(true);
       if (!_outputStream.CanWrite)
         return;
+
+      SendHeaders(true);
 
       if (chunk != null && chunk.Length > 0)
         ContentLength += chunk.Length;
@@ -422,6 +441,9 @@ namespace Tfres
     {
       lock (_sendHeadersLock)
       {
+        if (!_outputStream.CanWrite)
+          return;
+
         if (_headersSent)
           return;
 
