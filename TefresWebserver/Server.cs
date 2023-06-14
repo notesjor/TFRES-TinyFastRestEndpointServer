@@ -82,8 +82,6 @@ namespace Tfres
 
     #region Private-Members
 
-    private readonly EventWaitHandle _terminator = new EventWaitHandle(false, EventResetMode.ManualReset);
-
     private readonly HttpListener _httpListener;
     private readonly List<string> _listenerHostnames;
     private readonly int _listenerPort;
@@ -92,6 +90,7 @@ namespace Tfres
     private readonly Action<HttpContext> _defaultRoute;
 
     private readonly CancellationTokenSource _tokenSource;
+    private readonly CancellationToken _token;
 
     #endregion
 
@@ -102,11 +101,12 @@ namespace Tfres
     /// </summary>
     /// <param name="hostname">Hostname or IP address on which to listen.</param>
     /// <param name="port">TCP port on which to listen.</param>
+    /// <param name="continueWith">If the Task ends, you can perform optional actions</param>
     /// <param name="defaultRoute">
     ///   Method used when a request is received and no matching routes are found.  Commonly used as
     ///   the 404 handler when routes are used.
     /// </param>
-    public Server(string hostname, int port, Action<HttpContext> defaultRoute)
+    public Server(string hostname, int port, Action<HttpContext> defaultRoute, Action<Task> continueWith = null)
     {
       if (string.IsNullOrEmpty(hostname))
         hostname = "*";
@@ -121,7 +121,7 @@ namespace Tfres
       _defaultRoute = defaultRoute ?? throw new ArgumentNullException(nameof(defaultRoute));
       _tokenSource = new CancellationTokenSource();
 
-      Task.Run(() => StartServer(_tokenSource.Token), _tokenSource.Token);
+      StartServer(_tokenSource.Token, continueWith);      
     }
 
     /// <summary>
@@ -136,7 +136,8 @@ namespace Tfres
     ///   Method used when a request is received and no matching routes are found.  Commonly used as
     ///   the 404 handler when routes are used.
     /// </param>
-    public Server(List<string> hostnames, int port, Action<HttpContext> defaultRoute)
+    /// <param name="continueWith">If the Task ends, you can perform optional actions</param>
+    public Server(List<string> hostnames, int port, Action<HttpContext> defaultRoute, Action<Task> continueWith = null)
     {
       if (port < 1) throw new ArgumentOutOfRangeException(nameof(port));
       if (defaultRoute == null) throw new ArgumentNullException(nameof(defaultRoute));
@@ -154,7 +155,7 @@ namespace Tfres
       _defaultRoute = defaultRoute;
       _tokenSource = new CancellationTokenSource();
 
-      Task.Run(() => StartServer(_tokenSource.Token), _tokenSource.Token);
+      StartServer(_token, continueWith);
     }
 
     #endregion
@@ -178,10 +179,11 @@ namespace Tfres
       _tokenSource.Cancel();
     }
 
-    private void StartServer(CancellationToken token)
+    private void StartServer(CancellationToken token, Action<Task> continueWith)
     {
-      Task.Run(() => AcceptConnections(token), token);
-      _terminator.WaitOne();
+      var task = Task.Run(() => AcceptConnections(token), token);
+      if (continueWith != null)
+        task.ContinueWith(continueWith);  
     }
 
     private void AcceptConnections(CancellationToken token)
@@ -197,10 +199,11 @@ namespace Tfres
 
         #endregion
 
-        while (_httpListener.IsListening)
+        while (_httpListener.IsListening && !token.IsCancellationRequested)
           ThreadPool.QueueUserWorkItem(c =>
           {
-            if (token.IsCancellationRequested) throw new OperationCanceledException();
+            if (token.IsCancellationRequested)
+              return;
 
             var listenerContext = c as HttpListenerContext;
 
@@ -232,6 +235,8 @@ namespace Tfres
               // ignore
             }
           }, _httpListener.GetContext());
+
+        _httpListener.Stop();
       }
       catch
       {
@@ -239,6 +244,13 @@ namespace Tfres
       }
     }
 
+    #endregion
+
+    #region Public-Methods
+    public void Cancel()
+    {
+      _tokenSource.Cancel();
+    }
     #endregion
   }
 }
