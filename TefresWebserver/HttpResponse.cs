@@ -359,7 +359,7 @@ namespace Tfres
 
       if (chunk == null)
         return;
-
+      
       SendChunk(chunk, chunk.Length);
     }
 
@@ -481,6 +481,17 @@ namespace Tfres
       {
         // ignore
       }
+    }
+
+    /// <summary>
+    /// Initials the output stream to chunked transfer. Close this stream only by calling SendFinalChunk().
+    /// </summary>
+    /// <param name="mime">Mime-Type</param>
+    /// <returns></returns>
+    public Stream GetChunkedOutputStream(string mime)
+    {
+      SendChunk(null, mime);
+      return _outputStream;
     }
   }
 }

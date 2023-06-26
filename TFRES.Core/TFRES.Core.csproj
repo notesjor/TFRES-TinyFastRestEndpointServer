@@ -33,7 +33,6 @@ Based on jchristn/WatsonWebserver, but with many improvements and extremely redu
 
   <ItemGroup>
     <Compile Include="..\TefresWebserver\Chunk.cs" Link="Chunk.cs" />
-    <Compile Include="..\TefresWebserver\Endpoint.cs" Link="Endpoint.cs" />
     <Compile Include="..\TefresWebserver\EndpointManager.cs" Link="EndpointManager.cs" />
     <Compile Include="..\TefresWebserver\ErrorInfoMessage.cs" Link="ErrorInfoMessage.cs" />
     <Compile Include="..\TefresWebserver\HttpContext.cs" Link="HttpContext.cs" />
