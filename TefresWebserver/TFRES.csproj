@@ -64,6 +64,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Chunk.cs" />
+    <Compile Include="EasyWebSocket.cs" />
     <Compile Include="EndpointManager.cs" />
     <Compile Include="ErrorInfoMessage.cs" />
     <Compile Include="HttpContext.cs" />

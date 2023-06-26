@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using Tfres;
@@ -10,8 +11,8 @@ namespace TFRES.Test.SimpleServer
     static void Main(string[] args)
     {
       Console.Write("Start Server...");
-      // Start a Server at loclhost (127.0.0.1) on port 9999
-      var server = new Server("127.0.0.1", 9999, DefaultRouteTest);
+      // Start a Server at loclhost (127.0.0.1) on port 10101
+      var server = new Server("127.0.0.1", 10101, DefaultRouteTest);
 
       // Simple Endpoints - direct answer
       server.AddEndpoint(HttpMethod.Get, "/hello", (ctx) => ctx.Response.Send("Hello World"));
@@ -22,9 +23,33 @@ namespace TFRES.Test.SimpleServer
       server.AddEndpoint(HttpMethod.Get, "/corpus", GetBigCorpusStream);
       // If you send a object as response - the object is auto-serialized with Newtonsoft JSON
       server.AddEndpoint(HttpMethod.Get, "/newUser", NewUser);
+      // Open a WebSocket
+      server.AddEndpoint(HttpMethod.Get, "/openSocket", OpenSocket);
 
       Console.WriteLine("ok!");
       Console.ReadLine();
+    }
+
+    private static List<EasyWebSocket> _sockets = new List<EasyWebSocket>();
+
+    private static void OpenSocket(HttpContext context)
+    {
+      var socket = context.WebSocketEasy();
+      if(socket == null)
+        return;
+      
+      socket.MessageReceived += (s, msg) => Console.WriteLine($"Message received: {msg}");
+      socket.Closed += (s, e) =>
+      {
+        _sockets.Remove(s as EasyWebSocket);
+        Console.WriteLine("Socket closed");
+      };
+      _sockets.Add(socket);
+
+      socket.Send("Hello from Server").Wait();
+
+      // wait until socket is closed
+      socket.Wait();
     }
 
     private static void DefaultRouteTest(HttpContext ctx)

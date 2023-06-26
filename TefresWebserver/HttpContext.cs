@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.WebSockets;
 using System.Threading;
 using Newtonsoft.Json;
 
@@ -15,18 +16,53 @@ namespace Tfres
   /// </summary>
   public class HttpContext
   {
+    private HttpListenerContext _ctx;
+
     private HttpContext()
     {
     }
 
     internal HttpContext(HttpListenerContext ctx, JsonSerializer serializer, CancellationToken token)
     {
+      _ctx = ctx;
+
       Request = new HttpRequest(ctx);
       Response = new HttpResponse(Request, ctx ?? throw new ArgumentNullException(nameof(ctx)), serializer);
       CancellationToken = token;
     }
 
-    public string PostDataAsString => Request.PostDataAsString;
+    /// <summary>
+    /// Return the WebSocket
+    /// </summary>
+    public WebSocket WebSocket
+    {
+      get
+      {
+        if(!_ctx.Request.IsWebSocketRequest)
+          return null;
+
+        var task = _ctx.AcceptWebSocketAsync(null);
+        task.Wait();
+        return task.Result.WebSocket;
+      }
+    }
+
+    /// <summary>
+    /// Return the EasyWebSocket
+    /// </summary>
+    public EasyWebSocket WebSocketEasy(int bufferSize = 1024)
+    {
+      var socket = WebSocket;
+      if(socket == null)
+        return null;
+
+      return EasyWebSocket.Create(socket, bufferSize);
+    }
+
+    /// <summary>
+    /// Get the Post-Data as String
+    /// </summary>
+    public string PostDataAsString => Request.PostDataAsString;    
 
     /// <summary>
     ///   The HTTP request that was received.
