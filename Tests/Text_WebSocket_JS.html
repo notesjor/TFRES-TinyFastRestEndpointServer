@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebSocket Test</title>
+  <script>
+    var wsUri = "ws://localhost:10101/openSocket";
+    var output;
+    var websocket;
+
+    function init() {
+      output = document.getElementById("output");
+      testWebSocket();
+    }
+
+    function testWebSocket() {
+      websocket = new WebSocket(wsUri);
+
+      websocket.onopen = function(evt) {
+        onOpen(evt);
+      };
+
+      websocket.onmessage = function(evt) {
+        onMessage(evt);
+      };
+
+      websocket.onerror = function(evt) {
+        onError(evt);
+      };
+    }
+
+    function onOpen(evt) {
+      writeToScreen("CONNECTED");
+      sendMessage("WebSocket rocks");
+    }
+
+    function onMessage(evt) {
+      writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data + '</span>');
+
+      // Send another message after receiving a response
+      sendMessage("Another message");
+    }
+
+    function onError(evt) {
+      writeToScreen('<span style="color: red;">ERROR:</span> ' + evt.data);
+    }
+
+    function sendMessage(message) {
+      writeToScreen("SENT: " + message);
+      websocket.send(message);
+    }
+
+    function writeToScreen(message) {
+      var pre = document.createElement("p");
+      pre.style.wordWrap = "break-word";
+      pre.innerHTML = message;
+      output.appendChild(pre);
+    }
+
+    window.addEventListener("load", init, false);
+  </script>
+</head>
+<body>
+  <h2>WebSocket Test</h2>
+  <div id="output"></div>
+</body>
+</html>
