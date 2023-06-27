@@ -10,23 +10,29 @@ namespace TFRES.Test.SimpleServer
 {
   class Program
   {
+    private static Server _server;
+
     static void Main(string[] args)
     {
       Console.Write("Start Server...");
       // Start a Server at loclhost (127.0.0.1) on port 10101
-      var server = new Server("127.0.0.1", 10101, DefaultRouteTest);
+      _server = new Server("127.0.0.1", 10101, DefaultRouteTest);
 
       // Simple Endpoints - direct answer
-      server.AddEndpoint(HttpMethod.Get, "/hello", (ctx) => ctx.Response.Send("Hello World"));
-      server.AddEndpoint(HttpMethod.Get, "/user", (ctx) => ctx.Response.Send(new User { Name = ctx.Request.GetData()["name"] }));
+      _server.AddEndpoint(HttpMethod.Get, "/hello", (ctx) => ctx.Response.Send("Hello World"));
+      _server.AddEndpoint(HttpMethod.Get, "/user", (ctx) => ctx.Response.Send(new User { Name = ctx.Request.GetData()["name"] }));
       // Age-Check Endpoint with POST-Data
-      server.AddEndpoint(HttpMethod.Post, "/check", AgeCheck);
+      _server.AddEndpoint(HttpMethod.Post, "/check", AgeCheck);
       // Extrem simple file streaming - chunked auto-transfer
-      server.AddEndpoint(HttpMethod.Get, "/corpus", GetBigCorpusStream);
+      _server.AddEndpoint(HttpMethod.Get, "/corpus", GetBigCorpusStream);
       // If you send a object as response - the object is auto-serialized with Newtonsoft JSON
-      server.AddEndpoint(HttpMethod.Get, "/newUser", NewUser);
+      _server.AddEndpoint(HttpMethod.Get, "/newUser", NewUser);
       // Open a WebSocket
-      server.AddEndpoint(HttpMethod.Get, "/openSocket", OpenSocket);
+      _server.AddEndpoint(HttpMethod.Get, "/openSocket", OpenSocket);
+      // Send message to all open sockets
+      _server.AddEndpoint(HttpMethod.Get, "/sendToSockets", (ctx) => {
+        _server.SendToAll("Hello World 2 ALL!"); 
+        });
 
       Console.WriteLine("ok!");
       Console.ReadLine();
@@ -40,7 +46,10 @@ namespace TFRES.Test.SimpleServer
 
       socket.Wait();
 
-      socket.Result.Send("Hello World - 123");
+      socket.Result.Value.Send("Hello World - 123");
+      _server.SendToAll("Hello 2 ALL");
+
+      socket.Result.Value.KeepOpenAndRecive(context).Wait();
     }
 
     private static void DefaultRouteTest(HttpContext ctx)

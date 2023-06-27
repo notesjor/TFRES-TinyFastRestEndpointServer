@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Net.WebSockets;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -170,6 +171,10 @@ namespace Tfres
       if (!disposing)
         return;
 
+      foreach(var curr in _sockets)
+        curr.Value.Dispose();
+      _sockets.Clear();
+
       if (_httpListener != null)
       {
         if (_httpListener.IsListening) _httpListener.Stop();
@@ -185,6 +190,8 @@ namespace Tfres
       if (continueWith != null)
         task.ContinueWith(continueWith);  
     }
+
+    private Dictionary<Guid, WebSocket> _sockets = new Dictionary<Guid, WebSocket>();
 
     private void AcceptConnections(CancellationToken token)
     {
@@ -209,7 +216,7 @@ namespace Tfres
 
             try
             {
-              var ctx = new HttpContext(listenerContext, Serializer, token);
+              var ctx = new HttpContext(listenerContext, Serializer, token, ref _sockets);
 
               try
               {                
@@ -250,6 +257,26 @@ namespace Tfres
     public void Cancel()
     {
       _tokenSource.Cancel();
+    }
+
+    public void SendToAll(string socketMessage)
+    {
+      foreach(var socket in _sockets)
+        try
+        {
+          socket.Value.Send(socketMessage);
+        }
+        catch
+        {
+          // ignore
+        }
+    }
+
+    public void SendTo(Guid guid, string socketMessage)
+    {
+      if(!_sockets.ContainsKey(guid))
+        throw new ArgumentException("Guid not found", nameof(guid));
+      _sockets[guid].Send(socketMessage);
     }
     #endregion
   }

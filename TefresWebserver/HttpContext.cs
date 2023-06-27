@@ -18,15 +18,17 @@ namespace Tfres
   /// </summary>
   public class HttpContext
   {
+    private Dictionary<Guid, WebSocket> _sockets;
     private HttpListenerContext _ctx;
 
     private HttpContext()
     {
     }
 
-    internal HttpContext(HttpListenerContext ctx, JsonSerializer serializer, CancellationToken token)
+    internal HttpContext(HttpListenerContext ctx, JsonSerializer serializer, CancellationToken token, ref Dictionary<Guid, WebSocket> sockets)
     {
       _ctx = ctx;
+      _sockets = sockets;      
 
       Request = new HttpRequest(ctx);
       Response = new HttpResponse(Request, ctx ?? throw new ArgumentNullException(nameof(ctx)), serializer);
@@ -36,41 +38,19 @@ namespace Tfres
     /// <summary>
     /// Return the WebSocket
     /// </summary>
-    public async Task<WebSocket> GetWebSocket()
+    public async Task<KeyValuePair<Guid, WebSocket>> GetWebSocket()
     {
       if (!_ctx.Request.IsWebSocketRequest)
-        return null;
+        return new KeyValuePair<Guid, WebSocket>(Guid.Empty, null);
 
-      var task = await _ctx.AcceptWebSocketAsync(subProtocol: null);
-      await HandleWebSocketConnection(task.WebSocket);
+      var task = await _ctx.AcceptWebSocketAsync(subProtocol: null).ConfigureAwait(false);
+      //await HandleWebSocketConnection(task.WebSocket).ConfigureAwait(false);
 
-      return task.WebSocket;
-    }
+      var guid = Guid.NewGuid();
+      var res = task.WebSocket;
+      _sockets.Add(guid, res);
 
-    private async Task HandleWebSocketConnection(WebSocket webSocket)
-    {
-      var buffer = new byte[1024];
-
-      while (webSocket.State == WebSocketState.Open)
-      {
-        var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken);
-        if (result.MessageType == WebSocketMessageType.Close)
-        {
-          await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken);
-          break;
-        }
-        else
-        {
-          // Process the received message
-          var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-          Console.WriteLine($"Received message: {message}");
-
-          // Send updates to the client
-          var responseMessage = $"Server update: {DateTime.Now}";
-          var responseBytes = Encoding.UTF8.GetBytes(responseMessage);
-          await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken);
-        }
-      }
+      return new KeyValuePair<Guid, WebSocket>(guid, res);
     }
 
     /// <summary>

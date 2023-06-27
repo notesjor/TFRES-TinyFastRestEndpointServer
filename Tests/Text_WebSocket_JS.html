@@ -6,7 +6,7 @@
     var wsUri = "ws://localhost:10101/openSocket";
     var output;
     var websocket;
-	var count = 3;
+	var count = 5;
 
     function init() {
       output = document.getElementById("output");
@@ -35,12 +35,11 @@
     }
 
     function onMessage(evt) {
-	  if(count <= 0)
-		return;
       writeToScreen('<span style="color: blue;">RESPONSE: ' + evt.data + '</span>');
 
       // Send another message after receiving a response
-      sendMessage("Another message");
+	  if(count > 0)
+        sendMessage("Another message");
 	  count--;
     }
 
