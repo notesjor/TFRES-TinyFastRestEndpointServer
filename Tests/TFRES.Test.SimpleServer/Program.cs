@@ -30,9 +30,7 @@ namespace TFRES.Test.SimpleServer
       // Open a WebSocket
       _server.AddEndpoint(HttpMethod.Get, "/openSocket", OpenSocket);
       // Send message to all open sockets
-      _server.AddEndpoint(HttpMethod.Get, "/sendToSockets", (ctx) => {
-        _server.SendToAll("Hello World 2 ALL!"); 
-        });
+      _server.AddEndpoint(HttpMethod.Get, "/sendToSockets", (ctx) => _server.SendToAll("Hello World 2 ALL!"));
 
       Console.WriteLine("ok!");
       Console.ReadLine();
@@ -46,10 +44,10 @@ namespace TFRES.Test.SimpleServer
 
       socket.Wait();
 
-      socket.Result.Value.Send("Hello World - 123");
+      socket.Send("Hello World - 123");
       _server.SendToAll("Hello 2 ALL");
 
-      socket.Result.Value.KeepOpenAndRecive(context).Wait();
+      socket.KeepOpenAndRecive(context).Wait();
     }
 
     private static void DefaultRouteTest(HttpContext ctx)

@@ -10,6 +10,11 @@ namespace Tfres
 {
   public static class WebSocketHelper
   {
+    public static void Send(this Task<KeyValuePair<Guid, WebSocket>> connection, string text)
+    {
+      connection.Result.Value.Send(text);
+    }
+
     public static void Send(this WebSocket socket, string text)
     {
       Send(socket, text, new CancellationToken());
@@ -20,9 +25,14 @@ namespace Tfres
       socket.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(text)), WebSocketMessageType.Text, true, cancellationToken).Wait();
     }
 
-    public static async Task KeepOpenAndRecive(this WebSocket socket, HttpContext context)
+    public static Task KeepOpenAndRecive(this Task<KeyValuePair<Guid, WebSocket>> connection, HttpContext context, Action<string> action, int bufferSize = 64)
     {
-      var buffer = new byte[1024];
+      return connection.Result.Value.KeepOpenAndRecive(context, action, bufferSize);
+    }
+
+    public static async Task KeepOpenAndRecive(this WebSocket socket, HttpContext context, Action<string> action, int bufferSize = 64)
+    {
+      var buffer = new byte[bufferSize];
 
       while (socket.State == WebSocketState.Open)
       {
