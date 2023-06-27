@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
+using System.Text;
+using System.Threading;
 using Tfres;
 
 namespace TFRES.Test.SimpleServer
@@ -30,26 +32,15 @@ namespace TFRES.Test.SimpleServer
       Console.ReadLine();
     }
 
-    private static List<EasyWebSocket> _sockets = new List<EasyWebSocket>();
-
     private static void OpenSocket(HttpContext context)
     {
-      var socket = context.WebSocketEasy();
+      var socket = context.GetWebSocket();
       if(socket == null)
-        return;
-      
-      socket.MessageReceived += (s, msg) => Console.WriteLine($"Message received: {msg}");
-      socket.Closed += (s, e) =>
-      {
-        _sockets.Remove(s as EasyWebSocket);
-        Console.WriteLine("Socket closed");
-      };
-      _sockets.Add(socket);
+        return;      
 
-      socket.Send("Hello from Server").Wait();
-
-      // wait until socket is closed
       socket.Wait();
+
+      socket.Result.Send("Hello World - 123");
     }
 
     private static void DefaultRouteTest(HttpContext ctx)

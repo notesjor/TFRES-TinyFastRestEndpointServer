@@ -4,7 +4,9 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.WebSockets;
+using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 
 #endregion
@@ -34,35 +36,47 @@ namespace Tfres
     /// <summary>
     /// Return the WebSocket
     /// </summary>
-    public WebSocket WebSocket
+    public async Task<WebSocket> GetWebSocket()
     {
-      get
-      {
-        if(!_ctx.Request.IsWebSocketRequest)
-          return null;
-
-        var task = _ctx.AcceptWebSocketAsync(null);
-        task.Wait();
-        return task.Result.WebSocket;
-      }
-    }
-
-    /// <summary>
-    /// Return the EasyWebSocket
-    /// </summary>
-    public EasyWebSocket WebSocketEasy(int bufferSize = 1024)
-    {
-      var socket = WebSocket;
-      if(socket == null)
+      if (!_ctx.Request.IsWebSocketRequest)
         return null;
 
-      return EasyWebSocket.Create(socket, bufferSize);
+      var task = await _ctx.AcceptWebSocketAsync(subProtocol: null);
+      await HandleWebSocketConnection(task.WebSocket);
+
+      return task.WebSocket;
+    }
+
+    private async Task HandleWebSocketConnection(WebSocket webSocket)
+    {
+      var buffer = new byte[1024];
+
+      while (webSocket.State == WebSocketState.Open)
+      {
+        var result = await webSocket.ReceiveAsync(new ArraySegment<byte>(buffer), CancellationToken);
+        if (result.MessageType == WebSocketMessageType.Close)
+        {
+          await webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", CancellationToken);
+          break;
+        }
+        else
+        {
+          // Process the received message
+          var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
+          Console.WriteLine($"Received message: {message}");
+
+          // Send updates to the client
+          var responseMessage = $"Server update: {DateTime.Now}";
+          var responseBytes = Encoding.UTF8.GetBytes(responseMessage);
+          await webSocket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, CancellationToken);
+        }
+      }
     }
 
     /// <summary>
     /// Get the Post-Data as String
     /// </summary>
-    public string PostDataAsString => Request.PostDataAsString;    
+    public string PostDataAsString => Request.PostDataAsString;
 
     /// <summary>
     ///   The HTTP request that was received.
