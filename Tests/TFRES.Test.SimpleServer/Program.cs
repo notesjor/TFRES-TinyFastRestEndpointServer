@@ -39,15 +39,15 @@ namespace TFRES.Test.SimpleServer
     private static void OpenSocket(HttpContext context)
     {
       var socket = context.GetWebSocket();
-      if(socket == null)
-        return;      
+      if (socket == null)
+        return;
 
       socket.Wait();
 
       socket.Send("Hello World - 123");
       _server.SendToAll("Hello 2 ALL");
 
-      socket.KeepOpenAndRecive(context).Wait();
+      socket.KeepOpenAndRecive(context, (msg) => Console.WriteLine(msg)).Wait();
     }
 
     private static void DefaultRouteTest(HttpContext ctx)
@@ -60,7 +60,7 @@ namespace TFRES.Test.SimpleServer
       var user = ctx.PostData<User>(); // Automatisch Deserialisierung eines JSON-Objekts
       if (user == null || string.IsNullOrEmpty(user.Name))
       {
-        ctx.Response.Send(HttpStatusCode.InternalServerError, 
+        ctx.Response.Send(HttpStatusCode.InternalServerError,
                           "Error 105: user can not be empty - and needs a name (user.Name)",
                           501,
                           "http://help.com/url");
@@ -79,10 +79,10 @@ namespace TFRES.Test.SimpleServer
       ctx.Response.Send(HttpStatusCode.Accepted);
     }
 
-    private static void GetBigCorpusStream(HttpContext ctx) 
+    private static void GetBigCorpusStream(HttpContext ctx)
       => ctx.Response.SendFile("/path/veryBig.file");
 
-    private static void NewUser(HttpContext ctx) 
+    private static void NewUser(HttpContext ctx)
       => ctx.Response.Send(new User { Name = "Jan", Age = 18 + new Random().Next(1, 50) });
   }
 
