@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.WebSockets;
 using System.Text;
@@ -33,27 +34,26 @@ namespace Tfres
     public static async Task KeepOpenAndRecive(this WebSocket socket, HttpContext context, Action<string> action, int bufferSize = 64)
     {
       var buffer = new byte[bufferSize];
-
-      while (socket.State == WebSocketState.Open)
-      {
-        var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), context.CancellationToken);
-        if (result.MessageType == WebSocketMessageType.Close)
+      using (var ms = new MemoryStream())
+        while (socket.State == WebSocketState.Open && socket.CloseStatus == null && !context.CancellationToken.IsCancellationRequested)
         {
-          await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", context.CancellationToken);
-          break;
-        }
-        else
-        {
-          // Process the received message
-          var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-          Console.WriteLine($"Received message: {message}");
+          var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), context.CancellationToken);
+          if (result.MessageType == WebSocketMessageType.Close)
+          {
+            await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "", context.CancellationToken);
+            break;
+          }
 
-          // Send updates to the client
-          var responseMessage = $"Server update: {DateTime.Now}";
-          var responseBytes = Encoding.UTF8.GetBytes(responseMessage);
-          await socket.SendAsync(new ArraySegment<byte>(responseBytes), WebSocketMessageType.Text, true, context.CancellationToken);
+          if(result.Count > 0)
+            ms.Write(buffer, 0, result.Count);
+
+          if(result.EndOfMessage)
+          {
+            action(Encoding.UTF8.GetString(ms.ToArray()));
+            ms.Position = 0;
+            ms.SetLength(0);
+          }
         }
-      }
     }
   }
 }
