@@ -15,7 +15,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES.Test.SimpleServer", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TFRES.DotNet5", "TFRES.DotNet5\TFRES.DotNet5.csproj", "{B7840048-028D-4B0C-BD7C-90A8FD1D8A09}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES.DotNet8", "TFRES.DotNet8\TFRES.DotNet8.csproj", "{55AAE11D-91AD-48DF-9994-9E97F6D38753}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TFRES.DotNet8", "TFRES.DotNet8\TFRES.DotNet8.csproj", "{55AAE11D-91AD-48DF-9994-9E97F6D38753}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES.DotNet6", "TFRES.DotNet6\TFRES.DotNet6.csproj", "{B0A1296C-08F8-4C02-BF55-7497AEE1E6BC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -47,6 +49,10 @@ Global
 		{55AAE11D-91AD-48DF-9994-9E97F6D38753}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{55AAE11D-91AD-48DF-9994-9E97F6D38753}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{55AAE11D-91AD-48DF-9994-9E97F6D38753}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0A1296C-08F8-4C02-BF55-7497AEE1E6BC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0A1296C-08F8-4C02-BF55-7497AEE1E6BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0A1296C-08F8-4C02-BF55-7497AEE1E6BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0A1296C-08F8-4C02-BF55-7497AEE1E6BC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
