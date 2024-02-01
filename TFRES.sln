@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29609.76
+# Visual Studio Version 17
+VisualStudioVersion = 17.8.34525.116
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES", "TefresWebserver\TFRES.csproj", "{63F6B9F6-FF80-4764-BD45-109D549BF459}"
 EndProject
@@ -13,7 +13,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{6402B78A-5
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES.Test.SimpleServer", "Tests\TFRES.Test.SimpleServer\TFRES.Test.SimpleServer.csproj", "{DFE76EFA-EAA4-4B30-9ACF-6BCC4D14AD42}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES.DotNet5", "TFRES.DotNet5\TFRES.DotNet5.csproj", "{B7840048-028D-4B0C-BD7C-90A8FD1D8A09}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TFRES.DotNet5", "TFRES.DotNet5\TFRES.DotNet5.csproj", "{B7840048-028D-4B0C-BD7C-90A8FD1D8A09}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TFRES.DotNet8", "TFRES.DotNet8\TFRES.DotNet8.csproj", "{55AAE11D-91AD-48DF-9994-9E97F6D38753}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -41,6 +43,10 @@ Global
 		{B7840048-028D-4B0C-BD7C-90A8FD1D8A09}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B7840048-028D-4B0C-BD7C-90A8FD1D8A09}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B7840048-028D-4B0C-BD7C-90A8FD1D8A09}.Release|Any CPU.Build.0 = Release|Any CPU
+		{55AAE11D-91AD-48DF-9994-9E97F6D38753}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{55AAE11D-91AD-48DF-9994-9E97F6D38753}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{55AAE11D-91AD-48DF-9994-9E97F6D38753}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{55AAE11D-91AD-48DF-9994-9E97F6D38753}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
