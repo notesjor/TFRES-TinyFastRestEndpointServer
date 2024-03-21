@@ -332,6 +332,7 @@ namespace Tfres
       if (!_outputStream.CanWrite)
         return;
 
+      ContentType = mimeType;
       SendHeaders(true);
 
       if (chunk == null)
