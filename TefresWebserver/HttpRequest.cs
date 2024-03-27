@@ -599,8 +599,8 @@ namespace Tfres
       }
     }
 
-    private static char[] _separatorData = {'&'};
-    private static char[] _separatorDataValue = {'='};
+    private static char _separatorData = '&';
+    private static char _separatorDataValue = '=';
 
     /// <summary>
     ///   Return Data send as GET-Parameter
@@ -618,18 +618,18 @@ namespace Tfres
         foreach (var x in split)
           try
           {
-            var entry = x.Split(_separatorDataValue, StringSplitOptions.RemoveEmptyEntries);
-            if (entry.Length != 2)
-              continue;
+            var entry = x.Split(_separatorDataValue, StringSplitOptions.RemoveEmptyEntries).ToList();
 
             var key = HttpUtility.UrlDecode(entry[0]);
             if (keyToLowercase)
               key = key.ToLower();
 
+            var value = HttpUtility.UrlDecode(string.Join(_separatorDataValue, entry.Skip(1)));
+
             if (res.ContainsKey(key))
-              res[key] = HttpUtility.UrlDecode(entry[1]);
+              res[key] = value;
             else
-              res.Add(key, HttpUtility.UrlDecode(entry[1]));
+              res.Add(key, value);
           }
           catch
           {
