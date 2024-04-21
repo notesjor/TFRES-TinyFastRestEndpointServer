@@ -186,7 +186,7 @@ namespace Tfres
     {
       #region Check-for-Null-Values
 
-      if (ctx         == null) throw new ArgumentNullException(nameof(ctx));
+      if (ctx == null) throw new ArgumentNullException(nameof(ctx));
       if (ctx.Request == null) throw new ArgumentNullException(nameof(ctx.Request));
 
       #endregion
@@ -248,9 +248,9 @@ namespace Tfres
             continue;
           }
 
-          if (position                       == 0 &&
+          if (position == 0 &&
               string.Compare(tempString, "") == 0 &&
-              c                              == '/')
+              c == '/')
             // skip the first slash
             continue;
 
@@ -441,7 +441,7 @@ namespace Tfres
       ret += "--- HTTP Request ---" + Environment.NewLine;
       ret += TimestampUtc.ToString("MM/dd/yyyy HH:mm:ss") + " " + SourceIp + ":" + SourcePort + " to " + DestIp + ":" +
              DestPort + Environment.NewLine;
-      ret += "  "               + Verb + " " + RawUrlWithoutQuery + " " + ProtocolVersion + Environment.NewLine;
+      ret += "  " + Verb + " " + RawUrlWithoutQuery + " " + ProtocolVersion + Environment.NewLine;
       ret += "  Full URL    : " + FullUrl + Environment.NewLine;
       ret += "  Raw URL     : " + RawUrlWithoutQuery + Environment.NewLine;
       ret += "  Querystring : " + Querystring + Environment.NewLine;
@@ -599,8 +599,8 @@ namespace Tfres
       }
     }
 
-    private static char _separatorData = '&';
-    private static char _separatorDataValue = '=';
+    private static string[] _separatorData = new string[] { "&" };
+    private static string[] _separatorDataValue = new string[] { "=" };
 
     /// <summary>
     ///   Return Data send as GET-Parameter
@@ -624,7 +624,7 @@ namespace Tfres
             if (keyToLowercase)
               key = key.ToLower();
 
-            var value = HttpUtility.UrlDecode(string.Join(_separatorDataValue, entry.Skip(1)));
+            var value = HttpUtility.UrlDecode(string.Join(_separatorDataValue.First(), entry.Skip(1)));
 
             if (res.ContainsKey(key))
               res[key] = value;
@@ -856,7 +856,7 @@ namespace Tfres
       var ret = new List<string>();
 
       foreach (var c in rawUrlWithoutQuery.Where(c => position != 0 || string.CompareOrdinal(tempString, "") != 0 ||
-                                                      c        != '/'))
+                                                      c != '/'))
       {
         if (c != '/' && c != '?') tempString += c;
 
