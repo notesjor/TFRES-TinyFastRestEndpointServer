@@ -3,6 +3,8 @@
 using System.Globalization;
 using System.IO;
 using Microsoft.OpenApi;
+using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi.Writers;
 
 #endregion
 
@@ -15,7 +17,7 @@ namespace Tfres
       var outputStringWriter = new StringWriter(CultureInfo.InvariantCulture);
       var writer = new OpenApiJsonWriter(outputStringWriter);
       document.SerializeAsV3(writer);
-      writer.FlushAsync().Wait();
+      writer.Flush();
       return outputStringWriter.GetStringBuilder().ToString();
     }
   }
